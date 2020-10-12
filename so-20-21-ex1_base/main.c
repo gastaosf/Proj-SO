@@ -10,9 +10,13 @@
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
+#define SYNCH_STRATEGY 7
 
 int numberThreads = 0;
 char *synchStrategy = "";
+pthread_t tid[12];
+pthread_mutex_t lock_job_queue = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_FS = PTHREAD_MUTEX_INITIALIZER;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -46,15 +50,23 @@ void errorParse()
 
 void createTaskPool(int numThreads, void *apply)
 {
-    for (pthread_t tid = 0; tid < numberThreads; tid++)
+    for (int i = 0; i < numberThreads; i++)
     {
-        if (pthread_create(&tid, NULL, apply, NULL) != 0)
+        if (pthread_create(&tid[i], NULL, apply, NULL) != 0)
         {
             printf("Error creating thread.\n");
             exit(EXIT_FAILURE);
         }
     }
 }
+
+void joinTasks(int numberThreads){
+    for (int i = 0; i < numberThreads; i++)
+    {
+        pthread_join(tid[i],NULL);
+    }
+}
+
 
 void processInput(FILE *fp)
 {
@@ -110,13 +122,15 @@ void processInput(FILE *fp)
 void applyCommands()
 {
 
-    while (numberCommands > 0)
+    // while (numberCommands > 0)
+    while (1)
     {
-
+        pthread_mutex_lock(&lock_job_queue);
         const char *command = removeCommand();
+        pthread_mutex_unlock(&lock_job_queue);
         if (command == NULL)
         {
-            continue;
+            break;
         }
 
         char token, type;
@@ -132,6 +146,7 @@ void applyCommands()
         switch (token)
         {
         case 'c':
+            pthread_mutex_lock(&lock_FS);
             switch (type)
             {
             case 'f':
@@ -146,9 +161,12 @@ void applyCommands()
                 fprintf(stderr, "Error: invalid node type\n");
                 exit(EXIT_FAILURE);
             }
+            pthread_mutex_unlock(&lock_FS);
             break;
         case 'l':
+            pthread_mutex_lock(&lock_FS);
             searchResult = lookup(name);
+            pthread_mutex_unlock(&lock_FS);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
@@ -156,7 +174,9 @@ void applyCommands()
             break;
         case 'd':
             printf("Delete: %s\n", name);
+            pthread_mutex_lock(&lock_FS);
             delete (name);
+            pthread_mutex_unlock(&lock_FS);
             break;
         default:
         { /* error */
@@ -189,10 +209,13 @@ int main(int argc, char *argv[])
     /* Create task pool */
     gettimeofday(&start, NULL);
     createTaskPool(numberThreads, &applyCommands);
-    
-    applyCommands();
+    joinTasks(numberThreads);
+
+    pthread_mutex_destroy(&lock_job_queue);
+    pthread_mutex_destroy(&lock_FS);
+
     gettimeofday(&end, NULL);
-    time = end.tv_sec-start.tv_sec+(end.tv_usec-start.tv_usec)/1000000.0;
+    time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
     print_tecnicofs_tree(fp2);
     printf("TecnicoFS completed in %.4lf seconds.\n", time);
 
