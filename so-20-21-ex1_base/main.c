@@ -1,4 +1,4 @@
-/*este codigo e do gastao*/
+/*CODIGO DO MR. GASTÃO*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,19 +188,40 @@ void applyCommands()
     }
 }
 
+void inputFileProcessor(){
+    FILE *fp;
+    fp = fopen(argv[1], "r");
+
+    if (fp == NULL)
+      perror("Error! No input file with such name.")
+}
+
+void outputFileProcessor(){
+    FILE *fp;
+    fp = fopen(argv[2], "w");
+
+    if (fp == NULL)
+      perror("Error! Output file was not created.")
+}
+
+void argChecker(int argc){
+    if(argc != 4)
+      perror("Error! Wrong number of arguments given.");
+}
+
 int main(int argc, char *argv[])
 {
 
     struct timeval start, end;
     double time;
 
-    FILE *fp;
-    fp = fopen(argv[1], "r");
-    FILE *fp2;
-    fp2 = fopen(argv[2], "w");
+    argChecker(argc);
+    inputFileProcessor();
+    outputFileProcessor();
+
     numberThreads = atoi(argv[3]);
     synchStrategy = strdup(argv[4]);
-
+    
     /* init filesystem */
     init_fs();
 
