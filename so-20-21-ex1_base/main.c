@@ -60,13 +60,13 @@ void createTaskPool(int numThreads, void *apply)
     }
 }
 
-void joinTasks(int numberThreads){
+void joinTasks(int numberThreads)
+{
     for (int i = 0; i < numberThreads; i++)
     {
-        pthread_join(tid[i],NULL);
+        pthread_join(tid[i], NULL);
     }
 }
-
 
 void processInput(FILE *fp)
 {
@@ -127,7 +127,7 @@ void applyCommands()
     {
         pthread_mutex_lock(&lock_job_queue);
         const char *command = removeCommand();
-        pthread_mutex_unlock(&lock_job_queue);
+
         if (command == NULL)
         {
             break;
@@ -143,10 +143,13 @@ void applyCommands()
         }
 
         int searchResult;
+
+        pthread_mutex_lock(&lock_FS);
+        pthread_mutex_unlock(&lock_job_queue);
+
         switch (token)
         {
         case 'c':
-            pthread_mutex_lock(&lock_FS);
             switch (type)
             {
             case 'f':
@@ -161,12 +164,9 @@ void applyCommands()
                 fprintf(stderr, "Error: invalid node type\n");
                 exit(EXIT_FAILURE);
             }
-            pthread_mutex_unlock(&lock_FS);
             break;
         case 'l':
-            pthread_mutex_lock(&lock_FS);
             searchResult = lookup(name);
-            pthread_mutex_unlock(&lock_FS);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
@@ -174,9 +174,7 @@ void applyCommands()
             break;
         case 'd':
             printf("Delete: %s\n", name);
-            pthread_mutex_lock(&lock_FS);
             delete (name);
-            pthread_mutex_unlock(&lock_FS);
             break;
         default:
         { /* error */
@@ -184,6 +182,7 @@ void applyCommands()
             exit(EXIT_FAILURE);
         }
         }
+        pthread_mutex_unlock(&lock_FS);
     }
 }
 
