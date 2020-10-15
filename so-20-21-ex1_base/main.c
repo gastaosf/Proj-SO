@@ -7,21 +7,14 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include "fs/operations.h"
+#include "synch.h"
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
-#define SYNCH_STRATEGY 7
 
-pthread_rwlock_t rwlock_FS;
-int numberThreads = 0;
+int numberThreads;
 char *synchStrategy = "";
 pthread_t tid[12];
-pthread_mutex_t lock_job_queue = PTHREAD_MUTEX_INITIALIZER;
-union lock_FS
-{
-    pthread_mutex_t mutex;
-    pthread_rwlock_t rwlock;
-} lock_FS;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -53,30 +46,6 @@ void errorParse()
     exit(EXIT_FAILURE);
 }
 
-void synchInit(char *synchStrategy)
-{
-    if (!strcmp(synchStrategy, "mutex"))
-    {
-        pthread_mutex_init(&(lock_FS.mutex), NULL);
-    }
-    else if (!strcmp(synchStrategy, "rwlock"))
-    {
-        pthread_rwlock_init(&(lock_FS.rwlock), NULL);
-    }
-}
-
-void synchTerminate(char *synchStrategy)
-{
-    pthread_mutex_destroy(&lock_job_queue);
-    if (!strcmp(synchStrategy, "mutex"))
-    {
-        pthread_mutex_destroy(&(lock_FS.mutex));
-    }
-    else if (!strcmp(synchStrategy, "rwlock"))
-    {
-        pthread_rwlock_destroy(&(lock_FS.rwlock));
-    }
-}
 
 void createTaskPool(int numThreads, void *apply)
 {
@@ -95,42 +64,6 @@ void joinTasks(int numberThreads)
     for (int i = 0; i < numberThreads; i++)
     {
         pthread_join(tid[i], NULL);
-    }
-}
-
-void lockFS()
-{
-    if (!strcmp(synchStrategy, "mutex"))
-    {
-        pthread_mutex_lock(&(lock_FS.mutex));
-    }
-    else
-    {
-        pthread_rwlock_wrlock(&(lock_FS.rwlock));
-    }
-}
-
-void lockFSReadOnly()
-{
-    if (!strcmp(synchStrategy, "mutex"))
-    {
-        pthread_mutex_lock(&(lock_FS.mutex));
-    }
-    else
-    {
-        pthread_rwlock_rdlock(&(lock_FS.rwlock));
-    }
-}
-
-void unlockFS()
-{
-    if (!strcmp(synchStrategy, "mutex"))
-    {
-        pthread_mutex_unlock(&(lock_FS.mutex));
-    }
-    else
-    {
-        pthread_rwlock_unlock(&(lock_FS.rwlock));
     }
 }
 
@@ -193,10 +126,10 @@ void applyCommands()
     {
         pthread_mutex_lock(&lock_job_queue);
         const char *command = removeCommand();
+        pthread_mutex_unlock(&lock_job_queue);
 
         if (command == NULL)
         {
-            pthread_mutex_unlock(&lock_job_queue);
             break;
         }
 
@@ -210,25 +143,21 @@ void applyCommands()
         }
 
         int searchResult;
-
-        pthread_mutex_unlock(&lock_job_queue);
+        
 
         switch (token)
         {
+
         case 'c':
             switch (type)
             {
             case 'f':
                 printf("Create file: %s\n", name);
-                lockFS();
                 create(name, T_FILE);
-                unlockFS();
                 break;
             case 'd':
                 printf("Create directory: %s\n", name);
-                lockFS();
                 create(name, T_DIRECTORY);
-                unlockFS();
                 break;
             default:
                 fprintf(stderr, "Error: invalid node type\n");
@@ -236,20 +165,15 @@ void applyCommands()
             }
             break;
         case 'l':
-            lockFSReadOnly();
             searchResult = lookup(name);
-
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
                 printf("Search: %s not found\n", name);
-            unlockFS();
             break;
         case 'd':
-            lockFS();
             printf("Delete: %s\n", name);
             delete (name);
-            unlockFS();
             break;
         default:
         { /* error */
@@ -257,6 +181,7 @@ void applyCommands()
             exit(EXIT_FAILURE);
         }
         }
+        //unlockFS();
     }
 }
 
@@ -273,7 +198,7 @@ int main(int argc, char *argv[])
     numberThreads = atoi(argv[3]);
     synchStrategy = strdup(argv[4]);
 
-    synchInit(synchStrategy);
+    numberThreads= synchInit(synchStrategy,numberThreads);
 
     /* init filesystem */
     init_fs();
