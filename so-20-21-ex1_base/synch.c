@@ -6,7 +6,7 @@
 
 char* synchStrategy;
 
-int synchInit(char* synchStrategyInit,int numThreads)
+void synchInit(char* synchStrategyInit,int numThreads)
 {
     synchStrategy = strdup(synchStrategyInit);
     pthread_mutex_init(&lock_job_queue,NULL);
@@ -20,11 +20,13 @@ int synchInit(char* synchStrategyInit,int numThreads)
     }else if (!strcmp(synchStrategy, "nosynch"))
     {
         //no synch only works if there is only 1 thread
-        numThreads = 1;
+        if(numThreads != 1){
+            //erro
+        }
+        
     }else{
         //erro
     }
-    return numThreads;
 }
 
 
@@ -36,7 +38,7 @@ void lockFS()
     }
     else
     {
-        pthread_rwlock_wrlock(&(lock_FS.rwlock));
+        pthread_rwlock_rdlock(&(lock_FS.rwlock));
     }
 }
 
@@ -71,7 +73,7 @@ void lockCommandVector(){
 
 /* Unlock acesss to the job queue  */
 void unlockCommandVector(){
-    pthread_mutex_lock(&(lock_job_queue));
+    pthread_mutex_unlock(&(lock_job_queue));
 }
 
 void synchTerminate(char* synchStrategy)

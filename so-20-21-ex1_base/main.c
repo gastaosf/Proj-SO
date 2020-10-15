@@ -14,7 +14,7 @@
 
 int numberThreads;
 char *synchStrategy = "";
-pthread_t tid[12];
+pthread_t *tid;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -46,9 +46,9 @@ void errorParse()
     exit(EXIT_FAILURE);
 }
 
-
 void createTaskPool(int numThreads, void *apply)
 {
+    tid = malloc(sizeof(pthread_t) * numberThreads);
     for (int i = 0; i < numberThreads; i++)
     {
         if (pthread_create(&tid[i], NULL, apply, NULL) != 0)
@@ -124,9 +124,9 @@ void applyCommands()
     // while (numberCommands > 0)
     while (1)
     {
-        pthread_mutex_lock(&lock_job_queue);
+        lockCommandVector();
         const char *command = removeCommand();
-        pthread_mutex_unlock(&lock_job_queue);
+        unlockCommandVector();
 
         if (command == NULL)
         {
@@ -143,7 +143,6 @@ void applyCommands()
         }
 
         int searchResult;
-        
 
         switch (token)
         {
@@ -152,12 +151,17 @@ void applyCommands()
             switch (type)
             {
             case 'f':
+                lockFS();
                 printf("Create file: %s\n", name);
                 create(name, T_FILE);
+                unlockFS();
                 break;
             case 'd':
+                lockFS();
                 printf("Create directory: %s\n", name);
                 create(name, T_DIRECTORY);
+                unlockFS();
+
                 break;
             default:
                 fprintf(stderr, "Error: invalid node type\n");
@@ -165,15 +169,19 @@ void applyCommands()
             }
             break;
         case 'l':
+            lockFS();
             searchResult = lookup(name);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
                 printf("Search: %s not found\n", name);
+            unlockFS();
             break;
         case 'd':
+            lockFS();
             printf("Delete: %s\n", name);
             delete (name);
+            unlockFS();
             break;
         default:
         { /* error */
@@ -181,7 +189,6 @@ void applyCommands()
             exit(EXIT_FAILURE);
         }
         }
-        //unlockFS();
     }
 }
 
@@ -198,7 +205,7 @@ int main(int argc, char *argv[])
     numberThreads = atoi(argv[3]);
     synchStrategy = strdup(argv[4]);
 
-    numberThreads= synchInit(synchStrategy,numberThreads);
+    synchInit(synchStrategy, numberThreads);
 
     /* init filesystem */
     init_fs();

@@ -11,7 +11,7 @@ union lock_FS
 char* synchStrategy;
 
 /* Initialize the synching mechanism */
-int synchInit(char* synchStrategy,int numThreads);
+void synchInit(char* synchStrategy,int numThreads);
 
 /* Lock FileSystem's internal structure */
 void lockFS();
