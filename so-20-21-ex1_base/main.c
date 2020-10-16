@@ -15,13 +15,13 @@
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
-#define SYNCH_STRATEGY 7
 
 pthread_rwlock_t rwlock_FS;
 int numberThreads = 0;
-char *synchStrategy = "";
+char * synchStrategy = "";
 pthread_t tid[12];
 pthread_mutex_t lock_job_queue = PTHREAD_MUTEX_INITIALIZER;
+
 union lock_FS
 {
     pthread_mutex_t mutex;
@@ -32,7 +32,7 @@ char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
-int insertCommand(char *data)
+int insertCommand(char * data)
 {
     if (numberCommands != MAX_COMMANDS)
     {
@@ -42,7 +42,7 @@ int insertCommand(char *data)
     return 0;
 }
 
-char *removeCommand()
+char * removeCommand()
 {
     if (numberCommands > 0)
     {
@@ -58,7 +58,7 @@ void errorParse()
     exit(EXIT_FAILURE);
 }
 
-void synchInit(char *synchStrategy)
+void synchInit(char * synchStrategy)
 {
     if (!strcmp(synchStrategy, "mutex"))
     {
@@ -70,7 +70,7 @@ void synchInit(char *synchStrategy)
     }
 }
 
-void synchTerminate(char *synchStrategy)
+void synchTerminate(char * synchStrategy)
 {
     pthread_mutex_destroy(&lock_job_queue);
     if (!strcmp(synchStrategy, "mutex"))
@@ -83,7 +83,7 @@ void synchTerminate(char *synchStrategy)
     }
 }
 
-void createTaskPool(int numThreads, void *apply)
+void createTaskPool(int numThreads, void * apply)
 {
     for (int i = 0; i < numberThreads; i++)
     {
@@ -139,7 +139,7 @@ void unlockFS()
     }
 }
 
-void processInput(FILE *fp)
+void processInput(FILE * fp)
 {
     char line[MAX_INPUT_SIZE];
 
@@ -197,7 +197,7 @@ void applyCommands()
     while (1)
     {
         pthread_mutex_lock(&lock_job_queue);
-        const char *command = removeCommand();
+        const char * command = removeCommand();
 
         if (command == NULL)
         {
@@ -266,39 +266,48 @@ void applyCommands()
 }
 
 /* Ensures that number of arguments given is correct. */
-void argNumChecker(int argc){
-    if(argc != 4)
+void argNumChecker(int argc)
+{
+    if(argc != 5){
       perror("Error! Wrong number of arguments given.");
+      exit(1);
+    }
 }
 
 /* Ensures that input file exists and there are no problems. */
-FILE * inputFileHandler(char * file_name){
-    FILE *fp;
+FILE * inputFileHandler(char * file_name)
+{
+    FILE * fp;
     fp = fopen(file_name, "r");
 
-    if (fp == NULL)
+    if (fp == NULL){
       perror("Error! No input file with such name.");
-
+      exit(1);
+    }
     return fp;
 }
 
 /* Ensures that output file has no problems. */
-FILE * outputFileHandler(char * file_name){
-    FILE *fp;
+FILE * outputFileHandler(char * file_name)
+{
+    FILE * fp;
     fp = fopen(file_name, "w");
 
-    if (fp == NULL)
+    if (fp == NULL){
       perror("Error! Output file was not created.");
-
+      exit(1);
+    }
     return fp;
 }
 
 /* Ensures number of threads is possible. */
-int numThreadsHandler(char * num_threads){
+int numThreadsHandler(char * num_threads)
+{
     int threads = atoi(num_threads);
 
     if(threads <= 0){
         perror("Error! Number of threads is either negative or zero.");
+        exit(1);
         return -1;
     }
 
@@ -306,15 +315,27 @@ int numThreadsHandler(char * num_threads){
 }
 
 /* Ensures synch strategy is allowed. */
-void checkSynchStrategy(char * synchStrategy){
-
-    if(strcmp(synchStrategy, "nosync")!=0||strcmp(synchStrategy,"mutex")!=0||
-       strcmp(synchStrategy,"rwlock")!=0){
+void checkSynchStrategy(char * synchStrategy)
+{
+    if(!(strcmp(synchStrategy, "nosync")==0||strcmp(synchStrategy,"mutex")==0||
+       strcmp(synchStrategy,"rwlock")==0)){
            perror("Error! Unacceptable strategy. (check spelling)");
+           exit(1);
        }
 }
 
-int main(int argc, char *argv[])
+void checkNumThreads(char * num_threads, char * synchStrategy)
+{
+    int threads = atoi(num_threads);
+
+    if(threads != 1 && strcmp(synchStrategy, "nosync")==0){
+        perror("Error! nosync only uses 1 thread.");
+        exit(1);
+    }
+
+}
+
+int main(int argc, char * argv[])
 {
 
     struct timeval start, end;
@@ -328,6 +349,9 @@ int main(int argc, char *argv[])
     numberThreads = numThreadsHandler(argv[3]);
 
     checkSynchStrategy(argv[4]);
+
+    checkNumThreads(argv[3], argv[4]);
+
     synchStrategy = strdup(argv[4]);
 
     synchInit(synchStrategy);
@@ -346,6 +370,7 @@ int main(int argc, char *argv[])
 
     synchTerminate(synchStrategy);
 
+    /* get run time*/
     gettimeofday(&end, NULL);
     time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
     print_tecnicofs_tree(fp2);

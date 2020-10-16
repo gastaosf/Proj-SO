@@ -8,10 +8,10 @@ union lock_FS
     pthread_rwlock_t rwlock;
 } lock_FS;
 
-char* synchStrategy;
+char * synchStrategy;
 
 /* Initialize the synching mechanism */
-void synchInit(char* synchStrategy,int numThreads);
+void synchInit(char * synchStrategy,int numThreads);
 
 /* Lock FileSystem's internal structure */
 void lockFS();
@@ -29,6 +29,6 @@ void lockCommandVector();
 void unlockCommandVector();
 
 /* Terminate the synching mechanism */
-void synchTerminate(char* synchStrategy);
+void synchTerminate(char * synchStrategy);
 
 #endif /* SYNCH_H */
