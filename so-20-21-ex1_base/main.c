@@ -1,6 +1,7 @@
 /*
 90454 - Gastão Faria
-9 - Manuel Brito
+95623 - Manuel Brito
+Grupo 98
 */
 
 #include <stdio.h>
@@ -193,7 +194,7 @@ void processInput(FILE * fp)
 void applyCommands()
 {
 
-    // while (numberCommands > 0)
+    /* while (numberCommands > 0) */
     while (1)
     {
         pthread_mutex_lock(&lock_job_queue);
@@ -301,9 +302,9 @@ FILE * outputFileHandler(char * file_name)
 }
 
 /* Ensures number of threads is possible. */
-int numThreadsHandler(char * num_threads)
+int numThreadsHandler(char * numberThreads)
 {
-    int threads = atoi(num_threads);
+    int threads = atoi(numberThreads);
 
     if(threads <= 0){
         perror("Error! Number of threads is either negative or zero.");
@@ -324,9 +325,9 @@ void checkSynchStrategy(char * synchStrategy)
        }
 }
 
-void checkNumThreads(char * num_threads, char * synchStrategy)
+void checkNumThreads(char * numberThreads, char * synchStrategy)
 {
-    int threads = atoi(num_threads);
+    int threads = atoi(numberThreads);
 
     if(threads != 1 && strcmp(synchStrategy, "nosync")==0){
         perror("Error! nosync only uses 1 thread.");
@@ -356,21 +357,21 @@ int main(int argc, char * argv[])
 
     synchInit(synchStrategy);
 
-    /* init filesystem */
+    /* Initiate filesystem. */
     init_fs();
 
-    /* process input and print tree */
+    /* Process input and print tree. */
     processInput(fp);
 
-    /* Create task pool */
     gettimeofday(&start, NULL);
 
+    /* Create task pool. */
     createTaskPool(numberThreads, &applyCommands);
     joinTasks(numberThreads);
 
     synchTerminate(synchStrategy);
 
-    /* get run time*/
+    /* Get run time. */
     gettimeofday(&end, NULL);
     time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
     print_tecnicofs_tree(fp2);
@@ -378,7 +379,8 @@ int main(int argc, char * argv[])
 
     fclose(fp);
     fclose(fp2);
-    /* release allocated memory */
+
+    /* Eelease allocated memory. */
     destroy_fs();
     exit(EXIT_SUCCESS);
 }

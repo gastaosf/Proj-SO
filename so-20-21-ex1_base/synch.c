@@ -6,6 +6,7 @@
 
 char * synchStrategy;
 
+/* Initialize the synching mechanism. */
 void synchInit(char * synchStrategyInit,int numThreads)
 {
     synchStrategy = strdup(synchStrategyInit);
@@ -18,7 +19,7 @@ void synchInit(char * synchStrategyInit,int numThreads)
         pthread_rwlock_init(&(lock_FS.rwlock), NULL);
 }
 
-
+/* Lock FileSystem's internal structure. */
 void lockFS()
 {
     if (!strcmp(synchStrategy, "mutex"))
@@ -27,6 +28,7 @@ void lockFS()
         pthread_rwlock_rdlock(&(lock_FS.rwlock));
 }
 
+/* Lock FileSystem's internal structure to writing. */
 void lockFSReadOnly()
 {
     if (!strcmp(synchStrategy, "mutex"))
@@ -35,6 +37,7 @@ void lockFSReadOnly()
         pthread_rwlock_rdlock(&(lock_FS.rwlock));
 }
 
+/* Unlock FileSystem's internal structure. */
 void unlockFS()
 {
     if (!strcmp(synchStrategy, "mutex"))
@@ -44,22 +47,25 @@ void unlockFS()
 }
 
 /* Lock acesss to the job queue */
-void lockCommandVector(){
+void lockCommandVector()
+{
     pthread_mutex_lock(&(lock_job_queue));
 }
 
-/* Unlock acesss to the job queue  */
-void unlockCommandVector(){
+/* Unlock acesss to the job queue. */
+void unlockCommandVector()
+{
     pthread_mutex_unlock(&(lock_job_queue));
 }
 
+/* Terminate the synching mechanism. */
 void synchTerminate(char * synchStrategy)
 {
     pthread_mutex_destroy(&lock_job_queue);
 
     if (!strcmp(synchStrategy, "mutex"))
         pthread_mutex_destroy(&(lock_FS.mutex));
-        
+
     else if (!strcmp(synchStrategy, "rwlock"))
         pthread_rwlock_destroy(&(lock_FS.rwlock));
 }

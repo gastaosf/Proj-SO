@@ -2,6 +2,7 @@
 #define SYNCH_H
 
 pthread_mutex_t lock_job_queue;
+
 union lock_FS
 {
     pthread_mutex_t mutex;
@@ -10,25 +11,25 @@ union lock_FS
 
 char * synchStrategy;
 
-/* Initialize the synching mechanism */
+/* Initialize the synching mechanism. */
 void synchInit(char * synchStrategy,int numThreads);
 
-/* Lock FileSystem's internal structure */
+/* Lock FileSystem's internal structure. */
 void lockFS();
 
-/* Lock FileSystem's internal structure  to writing */
+/* Lock FileSystem's internal structure to writing. */
 void lockFSReadOnly();
 
-/* Unlock FileSystem's internal structure */
+/* Unlock FileSystem's internal structure. */
 void unlockFS();
 
-/* Lock acesss to the job queue */
+/* Lock acesss to the job queue. */
 void lockCommandVector();
 
-/* Unlock acesss to the job queue  */
+/* Unlock acesss to the job queue. */
 void unlockCommandVector();
 
-/* Terminate the synching mechanism */
+/* Terminate the synching mechanism. */
 void synchTerminate(char * synchStrategy);
 
 #endif /* SYNCH_H */
