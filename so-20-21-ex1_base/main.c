@@ -338,7 +338,7 @@ void checkNumThreads(char *numberThreads, char *synchStrategy)
 
     if (threads != 1 && strcmp(synchStrategy, "nosync") == 0)
     {
-        perror("Error! nosync only uses 1 thread.");
+        perror("Error! nosync can only use 1 thread.");
         exit(1);
     }
 }
