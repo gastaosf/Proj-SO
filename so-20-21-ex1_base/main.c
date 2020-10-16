@@ -143,21 +143,18 @@ void applyCommands()
         }
 
         int searchResult;
-
+        lockFS();
         switch (token)
         {
-
         case 'c':
             switch (type)
             {
             case 'f':
-                lockFS();
                 printf("Create file: %s\n", name);
                 create(name, T_FILE);
                 unlockFS();
                 break;
             case 'd':
-                lockFS();
                 printf("Create directory: %s\n", name);
                 create(name, T_DIRECTORY);
                 unlockFS();
@@ -166,10 +163,10 @@ void applyCommands()
             default:
                 fprintf(stderr, "Error: invalid node type\n");
                 exit(EXIT_FAILURE);
+                unlockFS();
             }
             break;
         case 'l':
-            lockFS();
             searchResult = lookup(name);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
@@ -178,7 +175,6 @@ void applyCommands()
             unlockFS();
             break;
         case 'd':
-            lockFS();
             printf("Delete: %s\n", name);
             delete (name);
             unlockFS();
