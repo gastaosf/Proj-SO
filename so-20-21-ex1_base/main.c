@@ -19,7 +19,7 @@ Grupo 98
 
 pthread_rwlock_t rwlock_FS;
 int numberThreads = 0;
-char * synchStrategy = "";
+char *synchStrategy = "";
 pthread_t tid[12];
 pthread_mutex_t lock_job_queue = PTHREAD_MUTEX_INITIALIZER;
 
@@ -33,7 +33,7 @@ char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
-int insertCommand(char * data)
+int insertCommand(char *data)
 {
     if (numberCommands != MAX_COMMANDS)
     {
@@ -43,7 +43,7 @@ int insertCommand(char * data)
     return 0;
 }
 
-char * removeCommand()
+char *removeCommand()
 {
     if (numberCommands > 0)
     {
@@ -59,7 +59,7 @@ void errorParse()
     exit(EXIT_FAILURE);
 }
 
-void synchInit(char * synchStrategy)
+void synchInit(char *synchStrategy)
 {
     if (!strcmp(synchStrategy, "mutex"))
     {
@@ -71,7 +71,7 @@ void synchInit(char * synchStrategy)
     }
 }
 
-void synchTerminate(char * synchStrategy)
+void synchTerminate(char *synchStrategy)
 {
     pthread_mutex_destroy(&lock_job_queue);
     if (!strcmp(synchStrategy, "mutex"))
@@ -84,7 +84,7 @@ void synchTerminate(char * synchStrategy)
     }
 }
 
-void createTaskPool(int numThreads, void * apply)
+void createTaskPool(int numThreads, void *apply)
 {
     for (int i = 0; i < numberThreads; i++)
     {
@@ -140,7 +140,7 @@ void unlockFS()
     }
 }
 
-void processInput(FILE * fp)
+void processInput(FILE *fp)
 {
     char line[MAX_INPUT_SIZE];
 
@@ -198,7 +198,7 @@ void applyCommands()
     while (1)
     {
         pthread_mutex_lock(&lock_job_queue);
-        const char * command = removeCommand();
+        const char *command = removeCommand();
 
         if (command == NULL)
         {
@@ -269,44 +269,48 @@ void applyCommands()
 /* Ensures that number of arguments given is correct. */
 void argNumChecker(int argc)
 {
-    if(argc != 5){
-      perror("Error! Wrong number of arguments given.");
-      exit(1);
+    if (argc != 5)
+    {
+        perror("Error! Wrong number of arguments given.");
+        exit(1);
     }
 }
 
 /* Ensures that input file exists and there are no problems. */
-FILE * inputFileHandler(char * file_name)
+FILE *inputFileHandler(char *file_name)
 {
-    FILE * fp;
+    FILE *fp;
     fp = fopen(file_name, "r");
 
-    if (fp == NULL){
-      perror("Error! No input file with such name.");
-      exit(1);
+    if (fp == NULL)
+    {
+        perror("Error! No input file with such name.");
+        exit(1);
     }
     return fp;
 }
 
 /* Ensures that output file has no problems. */
-FILE * outputFileHandler(char * file_name)
+FILE *outputFileHandler(char *file_name)
 {
-    FILE * fp;
+    FILE *fp;
     fp = fopen(file_name, "w");
 
-    if (fp == NULL){
-      perror("Error! Output file was not created.");
-      exit(1);
+    if (fp == NULL)
+    {
+        perror("Error! Output file was not created.");
+        exit(1);
     }
     return fp;
 }
 
 /* Ensures number of threads is possible. */
-int numThreadsHandler(char * numberThreads)
+int numThreadsHandler(char *numberThreads)
 {
     int threads = atoi(numberThreads);
 
-    if(threads <= 0){
+    if (threads <= 0)
+    {
         perror("Error! Number of threads is either negative or zero.");
         exit(1);
         return -1;
@@ -316,27 +320,30 @@ int numThreadsHandler(char * numberThreads)
 }
 
 /* Ensures synch strategy is allowed. */
-void checkSynchStrategy(char * synchStrategy)
+void checkSynchStrategy(char *synchStrategy)
 {
-    if(!(strcmp(synchStrategy, "nosync")==0||strcmp(synchStrategy,"mutex")==0||
-       strcmp(synchStrategy,"rwlock")==0)){
-           perror("Error! Unacceptable strategy. (check spelling)");
-           exit(1);
-       }
+    if (!(strcmp(synchStrategy, "nosync") == 0 ||
+          strcmp(synchStrategy, "mutex") == 0 ||
+          strcmp(synchStrategy, "rwlock") == 0))
+    {
+        perror("Error! Unacceptable strategy. (check spelling)");
+        exit(1);
+    }
 }
 
-void checkNumThreads(char * numberThreads, char * synchStrategy)
+/* Ensures there is only 1 thread when using nosync. */
+void checkNumThreads(char *numberThreads, char *synchStrategy)
 {
     int threads = atoi(numberThreads);
 
-    if(threads != 1 && strcmp(synchStrategy, "nosync")==0){
+    if (threads != 1 && strcmp(synchStrategy, "nosync") == 0)
+    {
         perror("Error! nosync only uses 1 thread.");
         exit(1);
     }
-
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 
     struct timeval start, end;
@@ -344,8 +351,8 @@ int main(int argc, char * argv[])
 
     argNumChecker(argc);
 
-    FILE * fp = inputFileHandler(argv[1]);
-    FILE * fp2 = outputFileHandler(argv[2]);
+    FILE *fp = inputFileHandler(argv[1]);
+    FILE *fp2 = outputFileHandler(argv[2]);
 
     numberThreads = numThreadsHandler(argv[3]);
 

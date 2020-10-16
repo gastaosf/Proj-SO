@@ -4,13 +4,13 @@
 
 #include "synch.h"
 
-char * synchStrategy;
+char *synchStrategy;
 
 /* Initialize the synching mechanism. */
-void synchInit(char * synchStrategyInit,int numThreads)
+void synchInit(char *synchStrategyInit, int numThreads)
 {
     synchStrategy = strdup(synchStrategyInit);
-    pthread_mutex_init(&lock_job_queue,NULL);
+    pthread_mutex_init(&lock_job_queue, NULL);
 
     if (!strcmp(synchStrategy, "mutex"))
         pthread_mutex_init(&(lock_FS.mutex), NULL);
@@ -59,7 +59,7 @@ void unlockCommandVector()
 }
 
 /* Terminate the synching mechanism. */
-void synchTerminate(char * synchStrategy)
+void synchTerminate(char *synchStrategy)
 {
     pthread_mutex_destroy(&lock_job_queue);
 
