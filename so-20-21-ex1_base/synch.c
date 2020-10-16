@@ -1,7 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-
 #include "synch.h"
 
 char *synchStrategy;

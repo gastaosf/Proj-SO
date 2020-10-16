@@ -1,6 +1,10 @@
 #ifndef SYNCH_H
 #define SYNCH_H
 
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+
 pthread_mutex_t lock_job_queue;
 
 union lock_FS
