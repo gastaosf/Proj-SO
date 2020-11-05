@@ -277,5 +277,6 @@ int main(int argc, char *argv[])
 
     /* release allocated memory */
     destroy_fs();
+    free(tid);
     exit(EXIT_SUCCESS);
 }

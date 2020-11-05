@@ -11,16 +11,9 @@ union lock_FS
 char* synchStrategy;
 
 /* Initialize the synching mechanism */
-void synchInit(char* synchStrategy,int numThreads);
+//void synchInit(int numThreads);
 
-/* Lock FileSystem's internal structure */
-void lockFS();
 
-/* Lock FileSystem's internal structure  to writing */
-void lockFSReadOnly();
-
-/* Unlock FileSystem's internal structure */
-void unlockFS();
 
 /* Lock acesss to the job queue */
 void lockCommandVector();
@@ -29,6 +22,6 @@ void lockCommandVector();
 void unlockCommandVector();
 
 /* Terminate the synching mechanism */
-void synchTerminate(char* synchStrategy);
+//void synchTerminate(char* synchStrategy);
 
 #endif /* SYNCH_H */
