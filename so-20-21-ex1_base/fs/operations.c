@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+int locked_inodes[INODE_TABLE_SIZE];
+
 /* Given a path, fills pointers with strings for the parent path and child
  * file name
  * Input:
@@ -145,6 +147,8 @@ int create(char *name, type nodeType)
 		return FAIL;
 	}
 
+	lock_inode_wr(parent_inumber);
+
 	inode_get(parent_inumber, &pType, &pdata);
 
 	if (pType != T_DIRECTORY)
@@ -163,6 +167,7 @@ int create(char *name, type nodeType)
 
 	/* create node and add entry to folder that contains new node */
 	child_inumber = inode_create(nodeType);
+
 	if (child_inumber == FAIL)
 	{
 		printf("failed to create %s in  %s, couldn't allocate inode\n",
@@ -176,6 +181,10 @@ int create(char *name, type nodeType)
 			   child_name, parent_name);
 		return FAIL;
 	}
+
+	unlock_inode(child_inumber);
+	unlock_inode(parent_inumber);
+	unlock_locked_inodes(locked_inodes);
 
 	return SUCCESS;
 }
@@ -207,6 +216,8 @@ int delete (char *name)
 		return FAIL;
 	}
 
+	lock_inode_wr(parent_inumber);
+
 	inode_get(parent_inumber, &pType, &pdata);
 
 	if (pType != T_DIRECTORY)
@@ -217,6 +228,8 @@ int delete (char *name)
 	}
 
 	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
+
+	lock_inode_wr(child_inumber);
 
 	if (child_inumber == FAIL)
 	{
@@ -242,12 +255,16 @@ int delete (char *name)
 		return FAIL;
 	}
 
+
 	if (inode_delete(child_inumber) == FAIL)
 	{
 		printf("could not delete inode number %d from dir %s\n",
 			   child_inumber, parent_name);
 		return FAIL;
 	}
+
+	unlock_inode(parent_inumber);	
+	unlock_locked_inodes(locked_inodes);
 
 	return SUCCESS;
 }
@@ -262,7 +279,6 @@ int delete (char *name)
  */
 int lookup(char *name)
 {
-	int locked_inodes[INODE_TABLE_SIZE];
 	int index = 0;
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
@@ -297,6 +313,12 @@ int lookup(char *name)
 	lock_inode_wr(current_inumber);
 
 	return current_inumber;
+}
+
+void unlock_locked_inodes(int* locked_inodes){
+	for(int i = 0; i<INODE_TABLE_SIZE; i++){
+		unlock_inode(locked_inodes[i]);
+	}
 }
 
 /*

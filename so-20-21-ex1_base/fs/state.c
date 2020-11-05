@@ -67,6 +67,7 @@ int inode_create(type nType)
     {
         if (inode_table[inumber].nodeType == T_NONE)
         {
+            lock_inode_wr(inumber);
             inode_table[inumber].nodeType = nType;
 
             if (nType == T_DIRECTORY)
@@ -86,6 +87,7 @@ int inode_create(type nType)
             return inumber;
         }
     }
+
     return FAIL;
 }
 
@@ -110,6 +112,9 @@ int inode_delete(int inumber)
     /* see inode_table_destroy function */
     if (inode_table[inumber].data.dirEntries)
         free(inode_table[inumber].data.dirEntries);
+
+	unlock_inode(inumber);
+
     return SUCCESS;
 }
 
