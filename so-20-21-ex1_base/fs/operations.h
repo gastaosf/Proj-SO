@@ -1,5 +1,6 @@
 #ifndef FS_H
 #define FS_H
+
 #include "state.h"
 
 void init_fs();

@@ -40,7 +40,7 @@ union Data {
 typedef struct inode_t {    
 	type nodeType;
 	union Data data;
-    /* more i-node attributes will be added in future exercises */
+	pthread_rwlock_t lock; 
 } inode_t;
 
 
@@ -54,6 +54,15 @@ int inode_set_file(int inumber, char *fileContents, int len);
 int dir_reset_entry(int inumber, int sub_inumber);
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
+
+/* Lock FileSystem's internal structure */
+void lock_inode_wr(int inumber);
+
+/* Lock FileSystem's internal structure  to writing */
+void lock_inode_rd(int inumber);
+
+/* Unlock FileSystem's internal structure */
+void unlock_inode(int inumber);
 
 
 #endif /* INODES_H */

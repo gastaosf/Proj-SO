@@ -1,0 +1,32 @@
+1.Sincronização fina dos inodes
+
+-> Cada i-node vai ter um trinco(mutex ou rwlock ?)
+
+-> Durante a execução de uma operação os trinco associados aos inodes acedidos
+devem ser guardados
+
+
+-> Devem executar concorrentemente as operacões que:
+  -> não alteram o estado do FS
+  -> não alterem elementos comuns
+
+
+2.Execução incremental de comandos
+
+-> ao contrário do exe1 a taskPool deverá ser criada no inicio do programa
+-> o vetor de chamadas vai ser acessivel pelas tarefas durante a loading phase
+-> loading é suspenso se o vetor estiver cheio(max=10)
+
+3. Nova operação: mover ficheiro ou diretoria
+
+-> recebe dois parametros o current path e o destination path
+-> o current deve existir e o destination não pode estar ocupado
+->o inumber do ficheiro ou diretoria deve-se manter(?)
+
+4. Shell script
+
+-> runTests inputdir outputdir maxthreads
+-> para cada ficheiro de inputdir executar de 1 até maxthreads
+-> antes de executar print "InputFile=nomeDoFicheiro NumThreads=númeroDeTarefas"
+-> depois de executar cada caso imprimir tempo de execução
+-> colocar output no outputdir
