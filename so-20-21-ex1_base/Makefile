@@ -33,6 +33,3 @@ clean:
 
 run: tecnicofs
 	./tecnicofs
-
-run1: tecnicofs
-	./tecnicofs < inputs/test4.txt

@@ -18,7 +18,6 @@ Grupo 98
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
-<<<<<<< HEAD
 pthread_rwlock_t rwlock_FS;
 int numberThreads = 0;
 char *synchStrategy = "";
@@ -30,11 +29,9 @@ union lock_FS
     pthread_mutex_t mutex;
     pthread_rwlock_t rwlock;
 } lock_FS;
-=======
 int numberThreads;
 char *synchStrategy = "";
 pthread_t *tid;
->>>>>>> main
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -66,7 +63,6 @@ void errorParse()
     exit(EXIT_FAILURE);
 }
 
-<<<<<<< HEAD
 void synchInit(char *synchStrategy)
 {
     if (!strcmp(synchStrategy, "mutex"))
@@ -92,9 +88,7 @@ void synchTerminate(char *synchStrategy)
     }
 }
 
-=======
 /* creates task pool with numThreads threads */
->>>>>>> main
 void createTaskPool(int numThreads, void *apply)
 {
     tid = malloc(sizeof(pthread_t) * numberThreads);
@@ -117,7 +111,6 @@ void joinTasks(int numberThreads)
     }
 }
 
-<<<<<<< HEAD
 void lockFS()
 {
     if (!strcmp(synchStrategy, "mutex"))
@@ -154,7 +147,6 @@ void unlockFS()
     }
 }
 
-=======
 /* Ensures that number of arguments given is correct. */
 void argNumChecker(int argc){
     if(argc != 5){
@@ -201,7 +193,6 @@ int numThreadsHandler(char * num_threads){
 }
 
 
->>>>>>> main
 void processInput(FILE *fp)
 {
     char line[MAX_INPUT_SIZE];
@@ -256,10 +247,7 @@ void processInput(FILE *fp)
 void applyCommands()
 {
 
-<<<<<<< HEAD
     /* while (numberCommands > 0) */
-=======
->>>>>>> main
     while (1)
     {
         lockCommandVector();
@@ -282,12 +270,9 @@ void applyCommands()
         }
 
         int searchResult;
-<<<<<<< HEAD
 
         pthread_mutex_unlock(&lock_job_queue);
 
-=======
->>>>>>> main
         switch (token)
         {
         case 'c':
@@ -306,10 +291,7 @@ void applyCommands()
                 lockFS();
                 create(name, T_DIRECTORY);
                 unlockFS();
-<<<<<<< HEAD
-=======
 
->>>>>>> main
                 break;
             default:
                 fprintf(stderr, "Error: invalid node type\n");
@@ -338,7 +320,6 @@ void applyCommands()
             exit(EXIT_FAILURE);
         }
         }
-<<<<<<< HEAD
     }
 }
 
@@ -416,8 +397,6 @@ void checkNumThreads(char *numberThreads, char *synchStrategy)
     {
         perror("Error! nosync can only use 1 thread.");
         exit(1);
-=======
->>>>>>> main
     }
 }
 
@@ -433,18 +412,15 @@ int main(int argc, char *argv[])
     FILE *fp2 = outputFileHandler(argv[2]);
 
     numberThreads = numThreadsHandler(argv[3]);
-<<<<<<< HEAD
 
     checkSynchStrategy(argv[4]);
 
     checkNumThreads(argv[3], argv[4]);
 
     synchStrategy = strdup(argv[4]);
-=======
     synchStrategy = argv[4];
     synchInit(synchStrategy, numberThreads);
 
->>>>>>> main
 
     synchInit(synchStrategy);
 
@@ -456,10 +432,7 @@ int main(int argc, char *argv[])
 
     gettimeofday(&start, NULL);
 
-<<<<<<< HEAD
     /* Create task pool. */
-=======
->>>>>>> main
     createTaskPool(numberThreads, &applyCommands);
     joinTasks(numberThreads);
 
@@ -474,11 +447,8 @@ int main(int argc, char *argv[])
     fclose(fp);
     fclose(fp2);
 
-<<<<<<< HEAD
     /* Eelease allocated memory. */
-=======
     /* release allocated memory */
->>>>>>> main
     destroy_fs();
     free(tid);
     exit(EXIT_SUCCESS);

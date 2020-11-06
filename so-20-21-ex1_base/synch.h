@@ -1,23 +1,19 @@
 #ifndef SYNCH_H
 #define SYNCH_H
 
-<<<<<<< HEAD
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
 pthread_mutex_t lock_job_queue;
 
-=======
 pthread_mutex_t lock_job_queue;
->>>>>>> main
 union lock_FS
 {
     pthread_mutex_t mutex;
     pthread_rwlock_t rwlock;
 } lock_FS;
 
-<<<<<<< HEAD
 char *synchStrategy;
 
 /* Initialize the synching mechanism. */
@@ -40,7 +36,6 @@ void unlockCommandVector();
 
 /* Terminate the synching mechanism. */
 void synchTerminate(char *synchStrategy);
-=======
 char* synchStrategy;
 
 /* Initialize the synching mechanism */
@@ -56,6 +51,5 @@ void unlockCommandVector();
 
 /* Terminate the synching mechanism */
 //void synchTerminate(char* synchStrategy);
->>>>>>> main
 
 #endif /* SYNCH_H */

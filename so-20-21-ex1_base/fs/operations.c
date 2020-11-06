@@ -1,5 +1,5 @@
 #include "operations.h"
-#include "synch.h"
+#include "../synch.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
