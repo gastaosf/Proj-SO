@@ -7,14 +7,14 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include "fs/operations.h"
-#include "synch.h"
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
 int numberThreads;
-char *synchStrategy = "";
+//char *synchStrategy = "";
 pthread_t *tid;
+pthread_mutex_t lock_job_queue;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -54,7 +54,7 @@ void createTaskPool(int numThreads, void *apply)
     {
         if (pthread_create(&tid[i], NULL, apply, NULL) != 0)
         {
-            fprintf(stderr,"Error creating thread.\n");
+            fprintf(stderr, "Error while creating thread.\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -70,42 +70,50 @@ void joinTasks(int numberThreads)
 }
 
 /* Ensures that number of arguments given is correct. */
-void argNumChecker(int argc){
-    if(argc != 5){
-      fprintf(stderr, "Wrong number of arguments given.");
-      exit(1);
+void argNumChecker(int argc)
+{
+    if (argc != 4)
+    {
+        fprintf(stderr, "Wrong number of arguments given.%d given %d required\n",argc,4);
+        exit(1);
     }
 }
 
 /* Ensures that input file exists and there are no problems. */
-FILE * inputFileHandler(char * file_name){
+FILE *inputFileHandler(char *file_name)
+{
     FILE *fp;
     fp = fopen(file_name, "r");
 
-    if (fp == NULL){
-      fprintf(stderr, "No input file with such name.");
-      exit(1);
+    if (fp == NULL)
+    {
+        fprintf(stderr, "No input file with such name. %s\n",file_name);
+        exit(1);
     }
     return fp;
 }
 
 /* Ensures that output file has no problems. */
-FILE * outputFileHandler(char * file_name){
+FILE *outputFileHandler(char *file_name)
+{
     FILE *fp;
     fp = fopen(file_name, "w");
 
-    if (fp == NULL){
-      fprintf(stderr, "Output file was not created.");
-      exit(1);
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Output file was not opened. %s\n",file_name);
+        exit(1);
     }
     return fp;
 }
 
 /* Ensures number of threads is possible. */
-int numThreadsHandler(char * num_threads){
+int numThreadsHandler(char *num_threads)
+{
     int threads = atoi(num_threads);
 
-    if(threads <= 0){
+    if (threads <= 0)
+    {
         fprintf(stderr, "Number of threads is either negative or zero.");
         exit(1);
         return -1;
@@ -114,6 +122,17 @@ int numThreadsHandler(char * num_threads){
     return threads;
 }
 
+/* Lock acesss to the job queue */
+void lockCommandVector()
+{
+    pthread_mutex_lock(&(lock_job_queue));
+}
+
+/* Unlock acesss to the job queue  */
+void unlockCommandVector()
+{
+    pthread_mutex_unlock(&(lock_job_queue));
+}
 
 void processInput(FILE *fp)
 {
@@ -196,17 +215,12 @@ void applyCommands()
             switch (type)
             {
             case 'f':
-                lockFS();
                 printf("Create file: %s\n", name);
                 create(name, T_FILE);
-                unlockFS();
                 break;
             case 'd':
-                lockFS();
                 printf("Create directory: %s\n", name);
                 create(name, T_DIRECTORY);
-                unlockFS();
-
                 break;
             default:
                 fprintf(stderr, "Error: invalid node type\n");
@@ -214,19 +228,16 @@ void applyCommands()
             }
             break;
         case 'l':
-            lockFSReadOnly();
-            searchResult = lookup(name);
+            searchResult = lookup_aux(name);
+            //printf("looking...found -> %d\n", searchResult);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
                 printf("Search: %s not found\n", name);
-            unlockFS();
             break;
         case 'd':
-            lockFS();
             printf("Delete: %s\n", name);
             delete (name);
-            unlockFS();
             break;
         default:
         { /* error */
@@ -242,6 +253,7 @@ int main(int argc, char *argv[])
 
     struct timeval start, end;
     double time;
+    pthread_mutex_init(&lock_job_queue, NULL);
 
     argNumChecker(argc);
 
@@ -249,9 +261,8 @@ int main(int argc, char *argv[])
     FILE *fp2 = outputFileHandler(argv[2]);
 
     numberThreads = numThreadsHandler(argv[3]);
-    synchStrategy = argv[4];
-    synchInit(synchStrategy, numberThreads);
-
+    //synchStrategy = argv[4];
+    //synchInit(synchStrategy, numberThreads);
 
     /* init filesystem */
     init_fs();
@@ -259,13 +270,12 @@ int main(int argc, char *argv[])
     /* process input and print tree */
     processInput(fp);
 
-    /* Create task pool */
     gettimeofday(&start, NULL);
 
     createTaskPool(numberThreads, &applyCommands);
     joinTasks(numberThreads);
 
-    synchTerminate(synchStrategy);
+    //ssynchTerminate(synchStrategy);
 
     gettimeofday(&end, NULL);
     time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
@@ -277,6 +287,7 @@ int main(int argc, char *argv[])
 
     /* release allocated memory */
     destroy_fs();
+    pthread_mutex_destroy(&lock_job_queue);
     free(tid);
     exit(EXIT_SUCCESS);
 }

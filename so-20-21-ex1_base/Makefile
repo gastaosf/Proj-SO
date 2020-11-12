@@ -12,13 +12,13 @@ LDFLAGS=-lm -pthread
 
 all: tecnicofs
 
-tecnicofs: fs/state.o fs/operations.o synch.o main.o
-	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o synch.o main.o
+tecnicofs: fs/state.o fs/operations.o main.o
+	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o main.o
 
 synch.o: synch.c synch.h
 	$(CC) $(CFLAGS) -o synch.o -c synch.c
 
-fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h synch.h
+fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h 
 	$(CC) $(CFLAGS) -o fs/state.o -c fs/state.c
 
 fs/operations.o: fs/operations.c fs/operations.h fs/state.h tecnicofs-api-constants.h 

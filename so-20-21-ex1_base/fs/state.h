@@ -17,6 +17,8 @@
 
 #define DELAY 5000
 
+#define LOCKED 1
+
 
 /*
  * Contains the name of the entry and respective i-number
@@ -40,7 +42,8 @@ union Data {
 typedef struct inode_t {    
 	type nodeType;
 	union Data data;
-	pthread_rwlock_t lock; 
+	pthread_rwlock_t lock;
+	int locked; 
 } inode_t;
 
 
@@ -64,5 +67,12 @@ void lock_inode_rd(int inumber);
 /* Unlock FileSystem's internal structure */
 void unlock_inode(int inumber);
 
+/* ReadLocks collection of inodes */
+void lock_inodes_rd(int* inodes,int size);
 
+/* WriteLocks collection of inodes */
+void lock_inodes_wr(int* inodes,int size);
+
+/* Unlocks collection of inodes */
+void unlock_inodes(int* inodes,int size);
 #endif /* INODES_H */

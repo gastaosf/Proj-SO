@@ -1,10 +1,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <unistd.h>
-#include "state.h"
-#include "../synch.h"
 
+#include "state.h"
 #include "../tecnicofs-api-constants.h"
 
 inode_t inode_table[INODE_TABLE_SIZE];
@@ -29,6 +29,7 @@ void inode_table_init()
         inode_table[i].nodeType = T_NONE;
         inode_table[i].data.dirEntries = NULL;
         inode_table[i].data.fileContents = NULL;
+        pthread_rwlock_init(&inode_table[i].lock, NULL);
     }
 }
 
@@ -65,11 +66,10 @@ int inode_create(type nType)
 
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
     {
+        lock_inode_wr(inumber);
         if (inode_table[inumber].nodeType == T_NONE)
         {
-            lock_inode_wr(inumber);
             inode_table[inumber].nodeType = nType;
-
             if (nType == T_DIRECTORY)
             {
                 /* Initializes entry table */
@@ -86,8 +86,8 @@ int inode_create(type nType)
             }
             return inumber;
         }
+        unlock_inode(inumber);
     }
-
     return FAIL;
 }
 
@@ -112,9 +112,6 @@ int inode_delete(int inumber)
     /* see inode_table_destroy function */
     if (inode_table[inumber].data.dirEntries)
         free(inode_table[inumber].data.dirEntries);
-
-	unlock_inode(inumber);
-
     return SUCCESS;
 }
 
@@ -274,11 +271,14 @@ void inode_print_tree(FILE *fp, int inumber, char *name)
 /* Locks inode */
 void lock_inode_wr(int inumber)
 {
+
     if (pthread_rwlock_wrlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While locking thread...");
+        fprintf(stderr, "Error! While write locking thread...");
         exit(1);
     }
+    printf("write locked ->%d\n",inumber);
+
 }
 
 /* Locks inode to writing */
@@ -286,16 +286,50 @@ void lock_inode_rd(int inumber)
 {
     if (pthread_rwlock_rdlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While locking thread...");
+        fprintf(stderr, "Error! While read locking thread...");
         exit(1);
     }
+    printf("read locked ->%d\n",inumber);
+
 }
 
 /* Unlocks inode */
 void unlock_inode(int inumber)
 {
-    if (pthread_rwlock_unlock(&(inode_table[inumber].lock))){
+    if (pthread_rwlock_unlock(&(inode_table[inumber].lock)))
+    {
         fprintf(stderr, "Error! While unlocking thread...");
         exit(1);
+    }
+    printf("unlocked ->%d\n",inumber);
+}
+
+/* ReadLocks collection of inodes */
+void lock_inodes_rd(int *inodes, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (!inode_table[inodes[i]].locked)
+            lock_inode_rd(inodes[i]);
+    }
+}
+
+/* WriteLocks collection of inodes */
+void lock_inodes_wr(int *inodes, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if (!inode_table[inodes[i]].locked)
+            lock_inode_wr(inodes[i]);
+    }
+}
+
+/* Unlocks collection of inodes */
+void unlock_inodes(int *inodes, int size)
+{
+
+    for (int i = 0;i < size; i++)
+    {
+        unlock_inode(inodes[i]);
     }
 }
