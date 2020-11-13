@@ -68,7 +68,7 @@ char *removeCommand()
 {
     char *command = "";
     // lockCommandVector();
-    while (numberCommands == 0)
+    while (numberCommands == 0 && !reachedEOF)
     {
         // if(!reachedEOF)
         //     return "";
