@@ -388,3 +388,31 @@ void unlock_delete(int parent_inumber, int *locked_inodes, int size)
 	unlock_inode(FS_ROOT);
 	unlock_inodes(locked_inodes, size);
 }
+
+int move(char *source, char *destination){
+	int parent_inumber = 0;
+	int child_inumber = 0;
+	char *source_parent, *source_child, *dest_parent, *dest_child, name_copy[MAX_FILE_NAME];
+	/* use for copy */
+	type pType;
+	union Data pdata;
+
+	int locked_inodes[INODE_TABLE_SIZE];
+	int size = 0;
+	int *numLocked = &size;
+
+	strcpy(name_copy, source);
+	split_parent_child_from_path(name_copy, &source_parent, &source_child);
+
+	strcpy(name_copy, destination);
+	split_parent_child_from_path(name_copy, &dest_parent, &dest_child);
+
+	//lookup source parent
+	lookup(source_parent, locked_inodes, int parentLock, numLocked);
+
+	//lookup parent dest
+
+	//lookup source child
+
+	//bla
+}
