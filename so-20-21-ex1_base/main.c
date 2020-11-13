@@ -8,36 +8,80 @@
 #include <sys/time.h>
 #include "fs/operations.h"
 
-#define MAX_COMMANDS 150000
+#define MAX_COMMANDS 10
 #define MAX_INPUT_SIZE 100
+#define TRUE 1
 
 int numberThreads;
-//char *synchStrategy = "";
+
 pthread_t *tid;
-pthread_mutex_t lock_job_queue;
+pthread_mutex_t lockQueue = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t canAddCommand;
+pthread_cond_t canRemoveCommand;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
+int numberCommandsTotal = 0;
+
 int headQueue = 0;
+int reachedEOF = !TRUE;
+
+/* Lock acesss to the job queue */
+void lockCommandVector()
+{
+    if (pthread_mutex_lock(&(lockQueue)))
+    {
+        printf("Error while locking queue ...");
+        exit(EXIT_FAILURE);
+    }
+}
+
+/* Unlock acesss to the job queue  */
+void unlockCommandVector()
+{
+    if (pthread_mutex_unlock(&(lockQueue)))
+    {
+        printf("Error while unlocking queue ...");
+        exit(EXIT_FAILURE);
+    }
+}
 
 int insertCommand(char *data)
 {
-    if (numberCommands != MAX_COMMANDS)
+    lockCommandVector();
+    while (numberCommands == MAX_COMMANDS)
     {
-        strcpy(inputCommands[numberCommands++], data);
-        return 1;
+        pthread_cond_wait(&canAddCommand, &lockQueue);
     }
-    return 0;
+    strcpy(inputCommands[numberCommandsTotal % MAX_COMMANDS], data);
+
+    numberCommands++;
+    numberCommandsTotal++;
+
+    pthread_cond_signal(&canRemoveCommand);
+    unlockCommandVector();
+
+    return 1;
 }
 
 char *removeCommand()
 {
-    if (numberCommands > 0)
+    char *command = "";
+    // lockCommandVector();
+    while (numberCommands == 0)
     {
-        numberCommands--;
-        return inputCommands[headQueue++];
+        // if(!reachedEOF)
+        //     return "";
+        pthread_cond_wait(&canRemoveCommand, &lockQueue);
     }
-    return NULL;
+    numberCommands--;
+
+    command = inputCommands[headQueue % MAX_COMMANDS];
+
+    headQueue++;
+    pthread_cond_signal(&canAddCommand);
+
+    return command;
 }
 
 void errorParse()
@@ -74,7 +118,7 @@ void argNumChecker(int argc)
 {
     if (argc != 4)
     {
-        fprintf(stderr, "Wrong number of arguments given.%d given %d required\n",argc,4);
+        fprintf(stderr, "Wrong number of arguments given.%d given %d required\n", argc, 4);
         exit(1);
     }
 }
@@ -87,7 +131,7 @@ FILE *inputFileHandler(char *file_name)
 
     if (fp == NULL)
     {
-        fprintf(stderr, "No input file with such name. %s\n",file_name);
+        fprintf(stderr, "No input file with such name. %s\n", file_name);
         exit(1);
     }
     return fp;
@@ -101,7 +145,7 @@ FILE *outputFileHandler(char *file_name)
 
     if (fp == NULL)
     {
-        fprintf(stderr, "Output file was not opened. %s\n",file_name);
+        fprintf(stderr, "Output file was not opened. %s\n", file_name);
         exit(1);
     }
     return fp;
@@ -122,18 +166,6 @@ int numThreadsHandler(char *num_threads)
     return threads;
 }
 
-/* Lock acesss to the job queue */
-void lockCommandVector()
-{
-    pthread_mutex_lock(&(lock_job_queue));
-}
-
-/* Unlock acesss to the job queue  */
-void unlockCommandVector()
-{
-    pthread_mutex_unlock(&(lock_job_queue));
-}
-
 void processInput(FILE *fp)
 {
     char line[MAX_INPUT_SIZE];
@@ -141,11 +173,11 @@ void processInput(FILE *fp)
     /* break loop with ^Z or ^D */
     while (fgets(line, sizeof(line) / sizeof(char), fp))
     {
+
         char token, type;
         char name[MAX_INPUT_SIZE];
 
         int numTokens = sscanf(line, "%c %s %c", &token, name, &type);
-
         /* perform minimal validation */
         if (numTokens < 1)
         {
@@ -183,25 +215,50 @@ void processInput(FILE *fp)
         }
         }
     }
+    lockCommandVector();
+    reachedEOF = TRUE;
+    pthread_cond_signal(&canRemoveCommand);
+    unlockCommandVector();
 }
+
+/* Reads input */
+// void readInput(FILE *fp)
+// {
+//     while (1)
+//     {
+//         lockCommandVector();
+//         if (reachedEOF)
+//         {
+//             unlockCommandVector();
+//             break;
+//         }
+//         while (numberCommands == MAX_COMMANDS)
+//         {
+//             pthread_cond_wait(&canAddCommand, &lockQueue);
+//         }
+//         processInput(fp);
+//         pthread_cond_signal(&canRemoveCommand);
+//         unlockCommandVector();
+//     }
+// }
 
 void applyCommands()
 {
-
-    while (1)
+    while (TRUE)
     {
         lockCommandVector();
-        const char *command = removeCommand();
-        unlockCommandVector();
-
-        if (command == NULL)
+        if ((reachedEOF && !numberCommands))
         {
+            unlockCommandVector();
             break;
         }
+        const char *command = removeCommand();
 
         char token, type;
         char name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        unlockCommandVector();
+
         if (numTokens < 2)
         {
             fprintf(stderr, "Error: invalid command in Queue\n");
@@ -223,13 +280,13 @@ void applyCommands()
                 create(name, T_DIRECTORY);
                 break;
             default:
-                fprintf(stderr, "Error: invalid node type\n");
+                fprintf(stderr, "Error: invalid node type in %s\n",command);
+                printf("token-> %c name->%s type%c/n", token, name, type);
                 exit(EXIT_FAILURE);
             }
             break;
         case 'l':
             searchResult = lookup_aux(name);
-            //printf("looking...found -> %d\n", searchResult);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
@@ -253,7 +310,8 @@ int main(int argc, char *argv[])
 
     struct timeval start, end;
     double time;
-    pthread_mutex_init(&lock_job_queue, NULL);
+    pthread_cond_init(&canAddCommand, NULL);
+    pthread_cond_init(&canRemoveCommand, NULL);
 
     argNumChecker(argc);
 
@@ -261,23 +319,24 @@ int main(int argc, char *argv[])
     FILE *fp2 = outputFileHandler(argv[2]);
 
     numberThreads = numThreadsHandler(argv[3]);
-    //synchStrategy = argv[4];
-    //synchInit(synchStrategy, numberThreads);
 
     /* init filesystem */
     init_fs();
 
-    /* process input and print tree */
-    processInput(fp);
+    /* Creates task pool */
+    createTaskPool(numberThreads, &applyCommands);
 
+    /* initial time*/
     gettimeofday(&start, NULL);
 
-    createTaskPool(numberThreads, &applyCommands);
+    /* process input */
+    processInput(fp);
+
     joinTasks(numberThreads);
 
-    //ssynchTerminate(synchStrategy);
-
+    /* final time */
     gettimeofday(&end, NULL);
+
     time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
     print_tecnicofs_tree(fp2);
     printf("TecnicoFS completed in %.4lf seconds.\n", time);
@@ -285,9 +344,16 @@ int main(int argc, char *argv[])
     fclose(fp);
     fclose(fp2);
 
+    for (int i = 0; i < MAX_COMMANDS; i++)
+    {
+        printf("%s", inputCommands[i]);
+    }
+
     /* release allocated memory */
     destroy_fs();
-    pthread_mutex_destroy(&lock_job_queue);
+    pthread_mutex_destroy(&lockQueue);
+    pthread_cond_destroy(&canAddCommand);
+    pthread_cond_destroy(&canRemoveCommand);
     free(tid);
     exit(EXIT_SUCCESS);
 }

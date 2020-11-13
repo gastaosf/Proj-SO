@@ -1,0 +1,5 @@
+# 8 creates, 2 lookups, 1 delete
+c a f 
+l a
+d a
+l a

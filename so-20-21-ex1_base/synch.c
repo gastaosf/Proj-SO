@@ -91,17 +91,7 @@ void unlockFS()
 }
 
 
-/* Lock acesss to the job queue */
-void lockCommandVector()
-{
-    pthread_mutex_lock(&(lock_job_queue));
-}
 
-/* Unlock acesss to the job queue  */
-void unlockCommandVector()
-{
-    pthread_mutex_unlock(&(lock_job_queue));
-}
 
 /* Terminate the synching mechanism */
 void synchTerminate(char *synchStrategy)

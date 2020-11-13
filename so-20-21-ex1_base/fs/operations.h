@@ -3,8 +3,8 @@
 
 #include "state.h"
 
-#define READ 1
-#define WRITE 2
+#define READ 2
+#define WRITE 3
 
 void init_fs();
 void destroy_fs();

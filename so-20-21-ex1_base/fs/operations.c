@@ -324,7 +324,6 @@ int lookup(char *name, int *locked_inodes, int parentLock, int *numLocked)
 	if (!path && parentLock == WRITE)
 	{
 		lock_inode_wr(current_inumber);
-		printf("aqui\n");
 	}
 	else
 	{

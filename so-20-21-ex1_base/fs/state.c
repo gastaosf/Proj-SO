@@ -277,7 +277,7 @@ void lock_inode_wr(int inumber)
         fprintf(stderr, "Error! While write locking thread...");
         exit(1);
     }
-    printf("write locked ->%d\n",inumber);
+    // printf("write locked ->%d\n",inumber);
 
 }
 
@@ -289,7 +289,7 @@ void lock_inode_rd(int inumber)
         fprintf(stderr, "Error! While read locking thread...");
         exit(1);
     }
-    printf("read locked ->%d\n",inumber);
+    // printf("read locked ->%d\n",inumber);
 
 }
 
@@ -301,7 +301,7 @@ void unlock_inode(int inumber)
         fprintf(stderr, "Error! While unlocking thread...");
         exit(1);
     }
-    printf("unlocked ->%d\n",inumber);
+    // printf("unlocked ->%d\n",inumber);
 }
 
 /* ReadLocks collection of inodes */
