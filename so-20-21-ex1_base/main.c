@@ -160,7 +160,6 @@ int numThreadsHandler(char *num_threads)
     {
         fprintf(stderr, "Number of threads is either negative or zero.");
         exit(1);
-        return -1;
     }
 
     return threads;
@@ -215,32 +214,12 @@ void processInput(FILE *fp)
         }
         }
     }
-    lockCommandVector();
+    //lockCommandVector();
     reachedEOF = TRUE;
-    pthread_cond_signal(&canRemoveCommand);
-    unlockCommandVector();
+    pthread_cond_broadcast(&canRemoveCommand);
+    //unlockCommandVector();
 }
 
-/* Reads input */
-// void readInput(FILE *fp)
-// {
-//     while (1)
-//     {
-//         lockCommandVector();
-//         if (reachedEOF)
-//         {
-//             unlockCommandVector();
-//             break;
-//         }
-//         while (numberCommands == MAX_COMMANDS)
-//         {
-//             pthread_cond_wait(&canAddCommand, &lockQueue);
-//         }
-//         processInput(fp);
-//         pthread_cond_signal(&canRemoveCommand);
-//         unlockCommandVector();
-//     }
-// }
 
 void applyCommands()
 {
@@ -281,7 +260,6 @@ void applyCommands()
                 break;
             default:
                 fprintf(stderr, "Error: invalid node type in %s\n",command);
-                printf("token-> %c name->%s type%c/n", token, name, type);
                 exit(EXIT_FAILURE);
             }
             break;

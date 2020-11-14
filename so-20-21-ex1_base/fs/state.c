@@ -66,7 +66,7 @@ int inode_create(type nType)
 
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
     {
-        lock_inode_wr(inumber);
+        lock_inode_rd(inumber);
         if (inode_table[inumber].nodeType == T_NONE)
         {
             inode_table[inumber].nodeType = nType;
