@@ -31,7 +31,7 @@ void lockCommandVector()
 {
     if (pthread_mutex_lock(&(lockQueue)))
     {
-        printf("Error while locking queue ...");
+        printf("Error while locking queue ...\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -41,7 +41,7 @@ void unlockCommandVector()
 {
     if (pthread_mutex_unlock(&(lockQueue)))
     {
-        printf("Error while unlocking queue ...");
+        printf("Error while unlocking queue ...\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -158,7 +158,7 @@ int numThreadsHandler(char *num_threads)
 
     if (threads <= 0)
     {
-        fprintf(stderr, "Number of threads is either negative or zero.");
+        fprintf(stderr, "Number of threads is either negative or zero.\n");
         exit(1);
     }
 
@@ -205,6 +205,13 @@ void processInput(FILE *fp)
                 break;
             return;
 
+        case 'm':
+            if (numTokens != 3)
+                errorParse();
+            if (insertCommand(line))
+                break;
+            return;
+
         case '#':
             break;
 
@@ -220,7 +227,6 @@ void processInput(FILE *fp)
     //unlockCommandVector();
 }
 
-
 void applyCommands()
 {
     while (TRUE)
@@ -235,7 +241,19 @@ void applyCommands()
 
         char token, type;
         char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        char source[MAX_INPUT_SIZE];
+        char destination[MAX_INPUT_SIZE];
+
+        sscanf(command, "%c", &token);
+        int numTokens = 0;
+        if (token != 'm')
+        {
+            numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        }
+        else
+        {
+            numTokens = sscanf(command, "%c %s %s", &token, source, destination);
+        }
         unlockCommandVector();
 
         if (numTokens < 2)
@@ -259,7 +277,7 @@ void applyCommands()
                 create(name, T_DIRECTORY);
                 break;
             default:
-                fprintf(stderr, "Error: invalid node type in %s\n",command);
+                fprintf(stderr, "Error: invalid node type in %s\n", command);
                 exit(EXIT_FAILURE);
             }
             break;
@@ -273,6 +291,10 @@ void applyCommands()
         case 'd':
             printf("Delete: %s\n", name);
             delete (name);
+            break;
+        case 'm':
+            printf("Move\n");
+            move(source, destination);
             break;
         default:
         { /* error */
@@ -321,11 +343,6 @@ int main(int argc, char *argv[])
 
     fclose(fp);
     fclose(fp2);
-
-    for (int i = 0; i < MAX_COMMANDS; i++)
-    {
-        printf("%s", inputCommands[i]);
-    }
 
     /* release allocated memory */
     destroy_fs();

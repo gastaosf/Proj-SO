@@ -27,17 +27,16 @@ void synchInit(char *synchStrategyInit, int numThreads)
         //no synch only works if there is only 1 thread
         if (numThreads != 1)
         {
-            fprintf(stderr,"Error! nosync can only use 1 thread.");
+            fprintf(stderr, "Error! nosync can only use 1 thread.\n");
             exit(1);
         }
     }
     else
     {
-        fprintf(stderr,"Error! Unacceptable strategy. (check spelling)");
+        fprintf(stderr, "Error! Unacceptable strategy. (check spelling)\n");
         exit(1);
     }
 }
-
 
 /* Lock FileSystem's internal structure */
 void lockFS()
@@ -89,9 +88,6 @@ void unlockFS()
         //nosync so does nothing
     }
 }
-
-
-
 
 /* Terminate the synching mechanism */
 void synchTerminate(char *synchStrategy)

@@ -147,7 +147,7 @@ int create(char *name, type nodeType)
 	if (child_inumber == FAIL)
 	{
 		printf("failed to create %s in  %s, couldn't allocate inode\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_inode(child_inumber);
 
 		return FAIL;
@@ -158,7 +158,7 @@ int create(char *name, type nodeType)
 	if (parent_inumber == FAIL)
 	{
 		printf("failed to create %s, invalid parent dir %s\n",
-			   name, parent_name);
+				 name, parent_name);
 		unlock_inodes(locked_inodes, size);
 		unlock_inode(child_inumber);
 		unlock_inode(FS_ROOT);
@@ -170,7 +170,7 @@ int create(char *name, type nodeType)
 	if (pType != T_DIRECTORY)
 	{
 		printf("failed to create %s, parent %s is not a dir\n",
-			   name, parent_name);
+				 name, parent_name);
 		unlock_create(parent_inumber, child_inumber, locked_inodes, size);
 		return FAIL;
 	}
@@ -178,7 +178,7 @@ int create(char *name, type nodeType)
 	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL)
 	{
 		printf("failed to create %s, already exists in dir %s\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_create(parent_inumber, child_inumber, locked_inodes, size);
 		return FAIL;
 	}
@@ -188,7 +188,7 @@ int create(char *name, type nodeType)
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL)
 	{
 		printf("could not add entry %s in dir %s\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_create(parent_inumber, child_inumber, locked_inodes, size);
 		return FAIL;
 	}
@@ -222,7 +222,7 @@ int delete (char *name)
 	if (parent_inumber == FAIL)
 	{
 		printf("failed to delete %s, invalid parent dir %s\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_inodes(locked_inodes, size);
 		unlock_inode(FS_ROOT);
 		return FAIL;
@@ -233,7 +233,7 @@ int delete (char *name)
 	if (pType != T_DIRECTORY)
 	{
 		printf("failed to delete %s, parent %s is not a dir\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_delete(parent_inumber, locked_inodes, size);
 
 		return FAIL;
@@ -244,7 +244,7 @@ int delete (char *name)
 	if (child_inumber == FAIL)
 	{
 		printf("could not delete %s, does not exist in dir %s\n",
-			   name, parent_name);
+				 name, parent_name);
 		unlock_delete(parent_inumber, locked_inodes, size);
 
 		return FAIL;
@@ -256,7 +256,7 @@ int delete (char *name)
 	if (cType == T_DIRECTORY && is_dir_empty(cdata.dirEntries) == FAIL)
 	{
 		printf("could not delete %s: is a directory and not empty\n",
-			   name);
+				 name);
 		unlock_delete(parent_inumber, locked_inodes, size);
 		unlock_inode(child_inumber);
 
@@ -267,7 +267,7 @@ int delete (char *name)
 	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL)
 	{
 		printf("failed to delete %s from dir %s\n",
-			   child_name, parent_name);
+				 child_name, parent_name);
 		unlock_delete(parent_inumber, locked_inodes, size);
 		unlock_inode(child_inumber);
 
@@ -277,7 +277,7 @@ int delete (char *name)
 	if (inode_delete(child_inumber) == FAIL)
 	{
 		printf("could not delete inode number %d from dir %s\n",
-			   child_inumber, parent_name);
+				 child_inumber, parent_name);
 		unlock_delete(parent_inumber, locked_inodes, size);
 		unlock_inode(child_inumber);
 
@@ -388,89 +388,138 @@ void unlock_delete(int parent_inumber, int *locked_inodes, int size)
 	unlock_inodes(locked_inodes, size);
 }
 
-// int move(char *source, char *destination)
-// {
-// 	int source_parent_inumber = 0;
-// 	int source_child_inumber = 0;
-// 	int dest_parent_inumber = 0;
-// 	int dest_child_inumber = 0;
+int move(char *source, char *destination)
+{
+	int source_parent_inumber = 0;
+	int source_child_inumber = 0;
+	int dest_parent_inumber = 0;
+	int dest_child_inumber = 0;
+
+	char *source_parent, *source_child, *dest_parent, *dest_child, name_copy[MAX_FILE_NAME];
+	/* use for copy */
+	type source_pType, dest_pType, dest_cType;
+	union Data source_pdata, dest_pdata, dest_cdata;
+
+	int locked_inodes_source[INODE_TABLE_SIZE];
+	int locked_inodes_dest[INODE_TABLE_SIZE];
 	
-// 	char *source_parent, *source_child, *dest_parent, *dest_child, name_copy[MAX_FILE_NAME];
-// 	/* use for copy */
-// 	type source_pType,dest_pType;
-// 	union Data source_pdata,dest_pdata;
-
-// 	int locked_inodes[INODE_TABLE_SIZE];
-// 	int size = 0;
-// 	int *numLocked = &size;
-
-// 	strcpy(name_copy, source);
-// 	split_parent_child_from_path(name_copy, &source_parent, &source_child);
-
-// 	strcpy(name_copy, destination);
-// 	split_parent_child_from_path(name_copy, &dest_parent, &dest_child);
-
-// 	//lookup source parent
-// 	source_parent_inumber = lookup(source_parent, locked_inodes, READ, numLocked);
-
-// 	if (source_parent_inumber == FAIL)
-// 	{
-// 		printf("failed to move %s, invalid source parent dir %s\n",
-// 			   source_child, source_child);
-
-// 		unlock_inodes(locked_inodes, size);
-// 		unlock_inode(FS_ROOT);
-// 		return FAIL;
-// 	}
-
-// 	inode_get(source_parent_inumber, &source_pType, &source_pdata);
-
-// 	if (source_pType != T_DIRECTORY)
-// 	{
-// 		printf("failed to move %s, parent %s is not a dir\n",
-// 			   source_child, source_parent);
-// 		unlock_delete(source_parent_inumber, locked_inodes, size);
-
-// 		return FAIL;
-// 	}
-
-// 	//lookup destination parent
-// 	dest_parent_inumber = lookup(dest_parent, locked_inodes, WRITE, numLocked);
-// 	if (dest_parent_inumber == FAIL)
-// 	{
-// 		printf("failed to move %s, invalid source parent dir %s\n",
-// 			   source_child, dest_child);
-
-// 		unlock_inodes(locked_inodes, size);
-// 		unlock_inode(FS_ROOT);
-// 		unlock_inode(source_parent_inumber);
-// 		return FAIL;
-// 	}
-
-// 	source_child_inumber = lookup_sub_node(source_child, source_pdata.dirEntries);
-
-// 	if (source_child_inumber == FAIL)
-// 	{
-// 		printf("could not move %s, does not exist in dir %s\n",
-// 			   source_child, source_parent);
-// 		unlock_delete(dest_parent_inumber, locked_inodes, size);
-// 		unlock_delete(source_parent_inumber, locked_inodes, size);
-// 		unlock_inodes(locked_inodes,size);
-// 		return FAIL;
-// 	}
-
-// 	dest_child_inumber = lookup_sub_node(dest_child, dest_pdata.dirEntries);
-
-// 	if (source_child_inumber == FAIL)
-// 	{
-// 		printf("could not move %s, does not exist in dir %s\n",
-// 			   source_child, source_parent);
-// 		unlock_delete(dest_parent_inumber, locked_inodes, size);
-// 		unlock_delete(source_parent_inumber, locked_inodes, size);
-// 		unlock_inodes(locked_inodes,size);
-// 		return FAIL;
-// 	}
+	int size_source = 0;
+	int *numLocked_source = &size_source;
+	
+	int size_dest = 0;
+	int *numLocked_dest = &size_dest;
 
 
+	strcpy(name_copy, source);
+	split_parent_child_from_path(name_copy, &source_parent, &source_child);
 
-// }
+	strcpy(name_copy, destination);
+	split_parent_child_from_path(name_copy, &dest_parent, &dest_child);
+
+	//lookup source parent
+	source_parent_inumber = lookup(source_parent, locked_inodes_source, READ, numLocked_source);
+
+	//check dir exits
+	if (source_parent_inumber == FAIL)
+	{
+		printf("failed to move %s, invalid source parent dir %s\n",
+				 source_child, source_child);
+
+		unlock_inodes(locked_inodes_source, size_source);
+		unlock_inode(FS_ROOT);
+		return FAIL;
+	}
+
+	inode_get(source_parent_inumber, &source_pType, &source_pdata);
+
+	//makes sure it is a dir
+	if (source_pType != T_DIRECTORY)
+	{
+		printf("failed to move %s, parent %s is not a dir\n",
+				 source_child, source_parent);
+		unlock_inodes(locked_inodes_source, size_source);
+		unlock_inode(FS_ROOT);
+
+		return FAIL;
+	}
+
+	//lookup source child
+	source_child_inumber = lookup_sub_node(source_child, source_pdata.dirEntries);
+
+	if (source_child_inumber == FAIL)
+	{
+		printf("could not move %s, does not exist in dir %s\n",
+				 source_child, source_parent);
+		unlock_inodes(dest_parent_inumber, locked_inodes, size);
+		unlock_inodes(locked_inodes, size);
+		return FAIL;
+	}
+
+	//lookup destination parent
+	dest_parent_inumber = lookup(dest_parent, locked_inodes, WRITE, numLocked);
+
+	//check dir exits
+	if (dest_parent_inumber == FAIL)
+	{
+		printf("failed to move %s, invalid source parent dir %s\n",
+				 source_child, dest_child);
+
+		unlock_inodes(locked_inodes, size);
+		unlock_inode(FS_ROOT);
+		unlock_inode(source_parent_inumber);
+		return FAIL;
+	}
+
+	inode_get(dest_parent_inumber, &dest_pType, &dest_pdata);
+
+	//makes sure it is a dir
+	if (dest_pType != T_DIRECTORY)
+	{
+		printf("failed to move %s, parent %s is not a dir\n",
+				 source_child, dest_parent);
+		unlock_delete(dest_parent_inumber, locked_inodes, size);
+
+		return FAIL;
+	}
+
+	//lookup destination child
+	dest_child_inumber = lookup_sub_node(dest_child, dest_pdata.dirEntries);
+
+	//check dir exits
+	if (source_child_inumber == FAIL)
+	{
+		printf("could not move %s, does not exist in dir %s\n",
+				 source_child, source_parent);
+		unlock_delete(dest_parent_inumber, locked_inodes, size);
+		unlock_delete(source_parent_inumber, locked_inodes, size);
+		unlock_inodes(locked_inodes, size);
+		return FAIL;
+	}
+
+	inode_get(dest_child_inumber, &dest_cType, &dest_cdata);
+
+	//makes sure it is a dir
+	if (dest_pType != T_DIRECTORY)
+	{
+		printf("failed to move %s, parent %s is not a dir\n",
+				 source_child, dest_child);
+		unlock_delete(dest_child_inumber, locked_inodes, size);
+
+		return FAIL;
+	}
+
+	//check if child_source is already in child_dest
+	if (lookup_sub_node(source_child, dest_cdata.dirEntries) != FAIL)
+	{
+		printf("failed to move %s, parent %s already has this inode.\n",
+				 source_child, dest_child);
+		unlock_delete(dest_child_inumber, locked_inodes, size);
+
+		return FAIL;
+	}
+
+	dir_add_entry(dest_child_inumber, source_child_inumber, source_child);
+	dir_reset_entry(dest_parent_inumber, source_child_inumber);
+
+	return SUCCESS;
+}

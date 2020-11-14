@@ -274,11 +274,10 @@ void lock_inode_wr(int inumber)
 
     if (pthread_rwlock_wrlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While write locking thread...");
+        fprintf(stderr, "Error! While write locking thread...\n");
         exit(1);
     }
     // printf("write locked ->%d\n",inumber);
-
 }
 
 /* Locks inode to writing */
@@ -286,11 +285,10 @@ void lock_inode_rd(int inumber)
 {
     if (pthread_rwlock_rdlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While read locking thread...");
+        fprintf(stderr, "Error! While read locking thread...\n");
         exit(1);
     }
     // printf("read locked ->%d\n",inumber);
-
 }
 
 /* Unlocks inode */
@@ -298,7 +296,7 @@ void unlock_inode(int inumber)
 {
     if (pthread_rwlock_unlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While unlocking thread...");
+        fprintf(stderr, "Error! While unlocking thread...\n");
         exit(1);
     }
     // printf("unlocked ->%d\n",inumber);
@@ -328,7 +326,7 @@ void lock_inodes_wr(int *inodes, int size)
 void unlock_inodes(int *inodes, int size)
 {
 
-    for (int i = 0;i < size; i++)
+    for (int i = 0; i < size; i++)
     {
         unlock_inode(inodes[i]);
     }
