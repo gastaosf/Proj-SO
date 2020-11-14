@@ -282,7 +282,7 @@ void applyCommands()
             }
             break;
         case 'l':
-            searchResult = lookup_aux(name);
+            searchResult = lookup(name);
             if (searchResult >= 0)
                 printf("Search: %s found\n", name);
             else
@@ -293,7 +293,7 @@ void applyCommands()
             delete (name);
             break;
         case 'm':
-            printf("Move\n");
+            printf("Move: %s to %s\n",source,destination);
             move(source, destination);
             break;
         default:

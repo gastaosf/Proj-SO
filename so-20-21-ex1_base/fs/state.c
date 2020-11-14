@@ -84,6 +84,8 @@ int inode_create(type nType)
             {
                 inode_table[inumber].data.fileContents = NULL;
             }
+            unlock_inode(inumber);
+
             return inumber;
         }
         unlock_inode(inumber);

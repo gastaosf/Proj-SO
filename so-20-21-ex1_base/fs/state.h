@@ -75,4 +75,6 @@ void lock_inodes_wr(int* inodes,int size);
 
 /* Unlocks collection of inodes */
 void unlock_inodes(int* inodes,int size);
+
+
 #endif /* INODES_H */
