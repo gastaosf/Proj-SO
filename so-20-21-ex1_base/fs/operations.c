@@ -363,9 +363,10 @@ int move(char *source, char *destination)
 {
 	int source_parent_inumber = 0;
 	int source_child_inumber = 0;
-	int destination_inumber = 0;
+	int dest_parent_inumber = 0;
 
-	char *source_parent, *source_child,name_copy[MAX_FILE_NAME];
+	char *source_parent, *source_child, *dest_parent, *dest_child, name_copy[MAX_FILE_NAME];
+	char name_copy2[MAX_FILE_NAME];
 	/* use for copy */
 	type source_pType, dest_pType;
 	union Data source_pdata, dest_pdata;
@@ -376,6 +377,9 @@ int move(char *source, char *destination)
 
 	strcpy(name_copy, source);
 	split_parent_child_from_path(name_copy, &source_parent, &source_child);
+
+	strcpy(name_copy2, destination);
+	split_parent_child_from_path(name_copy2, &dest_parent, &dest_child);
 
 	//lookup source parent
 	source_parent_inumber = lookup_aux(source_parent, locked_inodes, WRITE, &numLocked);
@@ -416,42 +420,42 @@ int move(char *source, char *destination)
 	}
 
 	//lookup destination parent
-	destination_inumber = lookup_aux(destination, locked_inodes, WRITE, &numLocked);
+	dest_parent_inumber = lookup_aux(dest_parent, locked_inodes, WRITE, &numLocked);
 
 	//check if parent exists
-	if (destination_inumber == FAIL)
+	if (dest_parent_inumber == FAIL)
 	{
 		printf("failed to move %s, invalid destination parent dir %s\n",
-			   source, destination);
+			   source, dest_parent);
 		unlock_inodes(locked_inodes, numLocked);
 
 		return FAIL;
 	}
 
-	inode_get(destination_inumber, &dest_pType, &dest_pdata);
+	inode_get(dest_parent_inumber, &dest_pType, &dest_pdata);
 
 	//check if parent is a dir
 	if (dest_pType != T_DIRECTORY)
 	{
 		printf("failed to move %s, parent %s is not a dir\n",
-			   source, destination);
+			   source, dest_parent);
 		unlock_inodes(locked_inodes, numLocked);
 
 		return FAIL;
 	}
 
-	//check if child_source is already in destination
-	if (lookup_sub_node(source_child, dest_pdata.dirEntries) != FAIL)
+	//check if entry already exists in destination
+	if (lookup_sub_node(dest_child, dest_pdata.dirEntries) != FAIL)
 	{
-		printf("failed to move %s, parent %s already has this inode.\n",
-			   source, destination);
+		printf("failed to move %s, parent %s already has this entry.\n",
+			   source, dest_parent);
 
 		unlock_inodes(locked_inodes, numLocked);
 		return FAIL;
 	}
 
 	//check if destination parent is already full
-	if (dest_pdata.dirEntries[MAX_DIR_ENTRIES].inumber != FREE_INODE)
+	if (dest_pdata.dirEntries[MAX_DIR_ENTRIES - 1].inumber != FREE_INODE)
 	{
 		printf("failed to move %s, parent %s is full.\n",
 			   source, destination);
@@ -461,9 +465,169 @@ int move(char *source, char *destination)
 	}
 
 	//both these operations are safe after the previous conditions are met
-	dir_add_entry(destination_inumber, source_child_inumber, source_child);
+	dir_add_entry(dest_parent_inumber, source_child_inumber, dest_child);
 	dir_reset_entry(source_parent_inumber, source_child_inumber);
 
-	unlock_inodes(locked_inodes,numLocked);
+	unlock_inodes(locked_inodes, numLocked);
 	return SUCCESS;
+}
+
+int lookup_aux_move(char *source, char *dest, int *locked_inodes, int *numLocked,int *source_inumber,int *dest_inumber)
+{
+	int index = *numLocked;
+	char full_path_source[MAX_FILE_NAME];
+	char full_path_dest[MAX_FILE_NAME];
+
+	char *saveptr_source;
+	char *saveptr_dest;
+
+	char delim[] = "/";
+
+	strcpy(full_path_source, source);
+	strcpy(full_path_dest, dest);
+
+	/* start at root node */
+	int current_inumber = FS_ROOT;
+	source_inumber = FS_ROOT;
+	dest_inumber = FS_ROOT;
+	int sourceParentLocked = 0;
+	int destParentLocked = 0;
+
+	/* use for copy */
+	type nType_root, nType_source, nType_dest;
+	union Data data_root, data_source, data_dest;
+
+	/* get root inode data */
+	inode_get(current_inumber, &nType_root, &data_root);
+
+	char *path_source = strtok_r(full_path_source, delim, &saveptr_source);
+	char *path_dest = strtok_r(full_path_dest, delim, &saveptr_dest);
+
+	/* lock root note */
+	if (!path_source)
+	{
+		lock_inode_wr(current_inumber);
+		sourceParentLocked = 1;
+	}
+	else if (!path_dest)
+	{
+		lock_inode_wr(current_inumber);
+		destParentLocked = 1;
+	}
+	else
+	{
+		lock_inode_rd(current_inumber);
+	}
+
+	locked_inodes[index] = current_inumber;
+	index++;
+
+	data_source = data_root;
+	data_dest = data_root;
+
+	/* search for all sub nodes */
+	while ((path_source || path_dest) && (source_inumber = lookup_sub_node(path_source, data_source.dirEntries)) != FAIL && (dest_inumber = lookup_sub_node(path_dest, data_dest.dirEntries)) != FAIL)
+	{
+		path_source = strtok_r(NULL, delim, &saveptr_source);
+		path_dest = strtok_r(NULL, delim, &saveptr_dest);
+
+		int sameInodes = source_inumber == dest_inumber;
+
+		if (path_source && path_dest)
+		{
+			if (sameInodes)
+			{
+				lock_inode_rd(source_inumber);
+				locked_inodes[index] = current_inumber;
+				index++;
+			}
+			lock_inode_rd(source_inumber);
+			locked_inodes[index] = current_inumber;
+			index++;
+		}
+		else if (!path_source && path_dest)
+		{
+			if (sameInodes)
+			{
+				if (!sourceParentLocked)
+				{
+					lock_inode_wr(source_inumber);
+					sourceParentLocked = 1;
+					locked_inodes[index] = current_inumber;
+					index++;
+				}
+			}
+			else
+			{
+				if (!sourceParentLocked)
+				{
+					lock_inode_wr(source_inumber);
+					sourceParentLocked = 1;
+					locked_inodes[index] = source_inumber;
+					index++;
+				}
+				lock_inode_rd(dest_inumber);
+				locked_inodes[index] = dest_inumber;
+				index++;
+			}
+		}
+		else if (path_source && !path_dest)
+		{
+			if (sameInodes)
+			{
+				if (!destParentLocked)
+				{
+					lock_inode_wr(dest_inumber);
+					destParentLocked = 1;
+					locked_inodes[index] = dest_inumber;
+					index++;
+				}
+			}
+			else
+			{
+				if (!destParentLocked)
+				{
+					lock_inode_wr(dest_inumber);
+					destParentLocked = 1;
+					locked_inodes[index] = dest_inumber;
+					index++;
+				}
+				lock_inode_rd(source_inumber);
+				locked_inodes[index] = source_inumber;
+				index++;
+			}
+		}
+		else
+		{
+			if (sameInodes)
+			{
+				lock_inode_wr(dest_inumber);
+				destParentLocked = 1;
+				locked_inodes[index] = dest_inumber;
+				index++;
+			}
+			else
+			{
+				if (!sourceParentLocked)
+				{
+					lock_inode_wr(source_inumber);
+					sourceParentLocked = 1;
+					locked_inodes[index] = source_inumber;
+					index++;
+				}
+				else if (!destParentLocked)
+				{
+					lock_inode_wr(dest_inumber);
+					destParentLocked = 1;
+					locked_inodes[index] = dest_inumber;
+					index++;
+				}
+			}
+		}
+		inode_get(source_inumber, &nType_source, &data_source);
+		inode_get(dest_inumber, &nType_dest, &data_dest);
+	}
+
+	*numLocked = index;
+	return source_inumber == FAIL || dest_inumber == FAIL ? FAIL : SUCCESS;
 }
