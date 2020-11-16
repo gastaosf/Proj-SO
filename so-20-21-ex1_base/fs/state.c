@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
@@ -271,26 +272,43 @@ void inode_print_tree(FILE *fp, int inumber, char *name)
 }
 
 /* Locks inode */
-void lock_inode_wr(int inumber)
+void lock_inode_wr(int inumber, int *num_locked, int *index)
 {
+    int ret;
 
-    if (pthread_rwlock_wrlock(&(inode_table[inumber].lock)))
+    if (ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While write locking thread...\n");
-        exit(1);
+        //error if invalid argument
+        if (ret == EINVAL)
+        {
+            fprintf(stderr, "Error of type %d! While write locking thread...\n",ret);
+            exit(1);
+        }
+        //else ignore lock attempt
+        return;
     }
-    // printf("write locked ->%d\n",inumber);
+    num_locked[*index] = inumber;
+    (*index)++;
 }
 
 /* Locks inode to writing */
-void lock_inode_rd(int inumber)
+void lock_inode_rd(int inumber, int *num_locked, int *index)
 {
-    if (pthread_rwlock_rdlock(&(inode_table[inumber].lock)))
+    int ret;
+
+    if (ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock)))
     {
-        fprintf(stderr, "Error! While read locking thread...\n");
-        exit(1);
+        //error if invalid argument or reached max # of readlock on this lock
+        if (ret == EINVAL || ret == EAGAIN)
+        {
+            fprintf(stderr, "Error of type %d ! While read locking thread...\n",ret);
+            exit(1);
+        }
+        //else ignore lock attempt
+        return;
     }
-    // printf("read locked ->%d\n",inumber);
+    num_locked[*index] = inumber;
+    (*index)++;
 }
 
 /* Unlocks inode */
@@ -300,27 +318,6 @@ void unlock_inode(int inumber)
     {
         fprintf(stderr, "Error! While unlocking thread...\n");
         exit(1);
-    }
-    // printf("unlocked ->%d\n",inumber);
-}
-
-/* ReadLocks collection of inodes */
-void lock_inodes_rd(int *inodes, int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        if (!inode_table[inodes[i]].locked)
-            lock_inode_rd(inodes[i]);
-    }
-}
-
-/* WriteLocks collection of inodes */
-void lock_inodes_wr(int *inodes, int size)
-{
-    for (int i = 0; i < size; i++)
-    {
-        if (!inode_table[inodes[i]].locked)
-            lock_inode_wr(inodes[i]);
     }
 }
 

@@ -59,10 +59,10 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 
 /* Lock FileSystem's internal structure */
-void lock_inode_wr(int inumber);
+void lock_inode_wr(int inumber,int *num_locked,int *index);
 
-/* Lock FileSystem's internal structure  to writing */
-void lock_inode_rd(int inumber);
+/* Lock FileSystem's internal structure*/
+void lock_inode_rd(int inumber,int *num_locked,int *index);
 
 /* Unlock FileSystem's internal structure */
 void unlock_inode(int inumber);
