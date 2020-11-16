@@ -67,7 +67,7 @@ int inode_create(type nType)
 
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
     {
-        lock_inode_rd(inumber);
+        pthread_rwlock_tryrdlock(&(inode_table[inumber].lock));
         if (inode_table[inumber].nodeType == T_NONE)
         {
             inode_table[inumber].nodeType = nType;
@@ -272,43 +272,51 @@ void inode_print_tree(FILE *fp, int inumber, char *name)
 }
 
 /* Locks inode */
-void lock_inode_wr(int inumber, int *num_locked, int *index)
+int lock_inode_wr(int inumber, int *num_locked, int *index)
 {
     int ret;
 
-    if (ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock)))
+    if ((ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock))))
     {
         //error if invalid argument
         if (ret == EINVAL)
         {
-            fprintf(stderr, "Error of type %d! While write locking thread...\n",ret);
+            fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
             exit(1);
         }
-        //else ignore lock attempt
-        return;
+        else
+        {
+            return FAIL;
+        }
     }
     num_locked[*index] = inumber;
     (*index)++;
+
+    return SUCCESS;
 }
 
 /* Locks inode to writing */
-void lock_inode_rd(int inumber, int *num_locked, int *index)
+int lock_inode_rd(int inumber, int *num_locked, int *index)
 {
     int ret;
 
-    if (ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock)))
+    if ((ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock))))
     {
         //error if invalid argument or reached max # of readlock on this lock
         if (ret == EINVAL || ret == EAGAIN)
         {
-            fprintf(stderr, "Error of type %d ! While read locking thread...\n",ret);
+            fprintf(stderr, "Error of type %d ! While read locking thread...\n", ret);
             exit(1);
         }
-        //else ignore lock attempt
-        return;
+        else
+        {
+            return FAIL;
+        }
     }
     num_locked[*index] = inumber;
     (*index)++;
+
+    return SUCCESS;
 }
 
 /* Unlocks inode */

@@ -2,9 +2,6 @@
 
 # $1-inputdir $2-outputdir $3-maxthreads
 
-make clean
-make
-
 for inputfile in $1/*.txt
 do
     for i in $(seq 1 $3)

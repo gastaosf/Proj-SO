@@ -19,11 +19,11 @@
 
 #define LOCKED 1
 
-
 /*
  * Contains the name of the entry and respective i-number
  */
-typedef struct dirEntry {
+typedef struct dirEntry
+{
 	char name[MAX_FILE_NAME];
 	int inumber;
 } DirEntry;
@@ -31,21 +31,22 @@ typedef struct dirEntry {
 /*
  * Data is either text (file) or entries (DirEntry)
  */
-union Data {
-	char *fileContents; /* for files */
+union Data
+{
+	char *fileContents;	 /* for files */
 	DirEntry *dirEntries; /* for directories */
 };
 
 /*
  * I-node definition
  */
-typedef struct inode_t {    
+typedef struct inode_t
+{
 	type nodeType;
 	union Data data;
 	pthread_rwlock_t lock;
-	int locked; 
+	int locked;
 } inode_t;
-
 
 void insert_delay(int cycles);
 void inode_table_init();
@@ -59,22 +60,21 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 
 /* Lock FileSystem's internal structure */
-void lock_inode_wr(int inumber,int *num_locked,int *index);
+int lock_inode_wr(int inumber, int *num_locked, int *index);
 
 /* Lock FileSystem's internal structure*/
-void lock_inode_rd(int inumber,int *num_locked,int *index);
+int lock_inode_rd(int inumber, int *num_locked, int *index);
 
 /* Unlock FileSystem's internal structure */
 void unlock_inode(int inumber);
 
 /* ReadLocks collection of inodes */
-void lock_inodes_rd(int* inodes,int size);
+void lock_inodes_rd(int *inodes, int size);
 
 /* WriteLocks collection of inodes */
-void lock_inodes_wr(int* inodes,int size);
+void lock_inodes_wr(int *inodes, int size);
 
 /* Unlocks collection of inodes */
-void unlock_inodes(int* inodes,int size);
-
+void unlock_inodes(int *inodes, int size);
 
 #endif /* INODES_H */
