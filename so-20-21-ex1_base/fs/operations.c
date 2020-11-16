@@ -396,7 +396,7 @@ int move(char *source, char *destination)
 
 	inode_get(source_parent_inumber, &source_pType, &source_pdata);
 
-	//comment
+	//commen
 	if (dest_parent_inumber == FAIL)
 	{
 		printf("failed to move %s, invalid parent dir %s\n",
