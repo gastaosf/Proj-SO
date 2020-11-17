@@ -389,14 +389,16 @@ int move(char *source, char *destination)
 		printf("failed to move %s, invalid parent dir %s\n",
 				 source, destination);
 		unlock_inodes(locked_inodes, numLocked);
-		sleep(random() % MAX + 1);
+		// sleep(random() % MAX + 1);
 
-		return move(source, destination);
+		// return move(source, destination);
 	}
 
 	inode_get(source_parent_inumber, &source_pType, &source_pdata);
 
+
 	//commen
+	dest_parent_inumber = lookup_aux(dest_parent, locked_inodes, WRITE, &numLocked);
 	if (dest_parent_inumber == FAIL)
 	{
 		printf("failed to move %s, invalid parent dir %s\n",
@@ -407,7 +409,7 @@ int move(char *source, char *destination)
 		return move(source, destination);
 	}
 
-	inode_get(dest_parent_inumber, &source_pType, &source_pdata);
+	inode_get(source_parent_inumber, &source_pType, &source_pdata);
 
 	//lookup source child
 	source_child_inumber = lookup_sub_node(source_child, source_pdata.dirEntries);
@@ -434,7 +436,7 @@ int move(char *source, char *destination)
 	}
 
 	//check if entry already exists in destination
-	if (lookup_sub_node(dest_child, dest_pdata.dirEntries) != FAIL)
+	if (lookup_sub_node(source_child, dest_pdata.dirEntries) != FAIL)
 	{
 		printf("failed to move %s, parent %s already has this entry.\n",
 				 source, dest_parent);

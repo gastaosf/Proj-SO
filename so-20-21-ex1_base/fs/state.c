@@ -284,9 +284,9 @@ int lock_inode_wr(int inumber, int *num_locked, int *index)
             fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
             exit(1);
         }
-        else
+        else 
         {
-            return FAIL;
+            return ret;
         }
     }
     num_locked[*index] = inumber;
@@ -310,7 +310,7 @@ int lock_inode_rd(int inumber, int *num_locked, int *index)
         }
         else
         {
-            return FAIL;
+            return ret;
         }
     }
     num_locked[*index] = inumber;
