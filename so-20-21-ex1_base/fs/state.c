@@ -279,14 +279,14 @@ int lock_inode_wr(int inumber, int *num_locked, int *index)
     if ((ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock))))
     {
         //error if invalid argument
-        if (ret == EINVAL)
+        if (ret == EBUSY)
         {
-            fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
-            exit(1);
+            return ret;
         }
         else 
         {
-            return ret;
+            fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
+            exit(1);
         }
     }
     num_locked[*index] = inumber;
@@ -302,15 +302,15 @@ int lock_inode_rd(int inumber, int *num_locked, int *index)
 
     if ((ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock))))
     {
-        //error if invalid argument or reached max # of readlock on this lock
-        if (ret == EINVAL || ret == EAGAIN)
-        {
-            fprintf(stderr, "Error of type %d ! While read locking thread...\n", ret);
-            exit(1);
-        }
-        else
+        //error if invalid argument
+        if (ret == EBUSY)
         {
             return ret;
+        }
+        else 
+        {
+            fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
+            exit(1);
         }
     }
     num_locked[*index] = inumber;

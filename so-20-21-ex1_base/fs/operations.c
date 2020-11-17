@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 /* Given a path, fills pointers with strings for the parent path and child
  * file name
@@ -312,13 +313,13 @@ int lookup_aux(char *name, int *locked_inodes, int parentLock, int *numLocked)
 	/* lock root note */
 	if (!path && parentLock == WRITE)
 	{
-		if(lock_inode_wr(current_inumber, locked_inodes, numLocked) == FAIL)
-			return FAIL;
+		if(lock_inode_rd(current_inumber, locked_inodes, numLocked) == EBUSY)
+			return EBUSY;		
 	}
 	else
 	{
-		if(lock_inode_rd(current_inumber, locked_inodes, numLocked) == FAIL)
-			return FAIL;
+		if(lock_inode_rd(current_inumber, locked_inodes, numLocked) == EBUSY)
+			return EBUSY;
 	}
 
 	/* search for all sub nodes */
@@ -326,12 +327,12 @@ int lookup_aux(char *name, int *locked_inodes, int parentLock, int *numLocked)
 	{
 		path = strtok_r(NULL, delim, &saveptr);
 		if (path || parentLock == READ){
-			if(lock_inode_rd(current_inumber, locked_inodes, numLocked) == FAIL)
-				return FAIL;
+			if(lock_inode_rd(current_inumber, locked_inodes, numLocked) == EBUSY)
+				return EBUSY;
 		}
 		else{
-			if(lock_inode_wr(current_inumber, locked_inodes, numLocked) == FAIL)
-				return FAIL;
+			if(lock_inode_wr(current_inumber, locked_inodes, numLocked) == EBUSY)
+				return EBUSY;
 		}
 
 		inode_get(current_inumber, &nType, &data);
@@ -389,9 +390,6 @@ int move(char *source, char *destination)
 		printf("failed to move %s, invalid parent dir %s\n",
 				 source, destination);
 		unlock_inodes(locked_inodes, numLocked);
-		// sleep(random() % MAX + 1);
-
-		// return move(source, destination);
 	}
 
 	inode_get(source_parent_inumber, &source_pType, &source_pdata);
@@ -399,10 +397,15 @@ int move(char *source, char *destination)
 
 	//commen
 	dest_parent_inumber = lookup_aux(dest_parent, locked_inodes, WRITE, &numLocked);
+	
 	if (dest_parent_inumber == FAIL)
 	{
 		printf("failed to move %s, invalid parent dir %s\n",
 				 source, destination);
+		unlock_inodes(locked_inodes, numLocked);
+	}
+	else if (source_child_inumber == EBUSY)
+	{
 		unlock_inodes(locked_inodes, numLocked);
 		sleep((random() % MAX + 1)/100);
 		
@@ -421,6 +424,13 @@ int move(char *source, char *destination)
 		unlock_inodes(locked_inodes, numLocked);
 		
 		return FAIL;
+	}
+	else if (source_child_inumber == EBUSY)
+	{
+		unlock_inodes(locked_inodes, numLocked);
+		sleep((random() % MAX + 1)/100);
+
+		return move(source, destination);
 	}
 
 	inode_get(dest_parent_inumber, &dest_pType, &dest_pdata);
