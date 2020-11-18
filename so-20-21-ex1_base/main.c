@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <errno.h>
 #include "fs/operations.h"
 
 #define MAX_COMMANDS 10
@@ -269,11 +270,10 @@ void applyCommands()
             switch (type)
             {
             case 'f':
-                printf("Create file: %s\n", name);
+                
                 create(name, T_FILE);
                 break;
             case 'd':
-                printf("Create directory: %s\n", name);
                 create(name, T_DIRECTORY);
                 break;
             default:
@@ -292,9 +292,10 @@ void applyCommands()
             printf("Delete: %s\n", name);
             delete (name);
             break;
-        case 'm':
-            printf("Move: %s to %s\n",source,destination);
-            move(source, destination);
+        case 'm':            
+            while(move(source, destination) == EBUSY){
+
+            }
             break;
         default:
         { /* error */

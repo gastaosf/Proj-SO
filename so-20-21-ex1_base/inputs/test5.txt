@@ -59,6 +59,6 @@ m /y /a/y
 m /a/z /z
 ##
 ## Deteção de loops - /!\ estas operações devem falhar (mesmo com 1 tarefa) /!\
-m /a /a/a
-m /c /c/c
+#m /a /a/a
+#m /c /c/c
 #m /e /e/e

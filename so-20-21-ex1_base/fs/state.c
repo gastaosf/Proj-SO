@@ -67,7 +67,7 @@ int inode_create(type nType)
 
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++)
     {
-        pthread_rwlock_tryrdlock(&(inode_table[inumber].lock));
+        pthread_rwlock_rdlock(&(inode_table[inumber].lock));
         if (inode_table[inumber].nodeType == T_NONE)
         {
             inode_table[inumber].nodeType = nType;
@@ -207,7 +207,7 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name)
         printf("inode_add_entry: invalid inumber\n");
         return FAIL;
     }
-
+ 
     if (inode_table[inumber].nodeType != T_DIRECTORY)
     {
         printf("inode_add_entry: can only add entry to directories\n");
@@ -216,7 +216,7 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name)
 
     if ((sub_inumber < 0) || (sub_inumber > INODE_TABLE_SIZE) || (inode_table[sub_inumber].nodeType == T_NONE))
     {
-        printf("inode_add_entry: invalid entry inumber\n");
+        printf("inode_add_entry: invalid entry inumber -> %d\n",sub_inumber);
         return FAIL;
     }
 
@@ -272,38 +272,40 @@ void inode_print_tree(FILE *fp, int inumber, char *name)
 }
 
 /* Locks inode */
-int lock_inode_wr(int inumber, int *num_locked, int *index)
+void lock_inode_wr(int inumber,int *num_locked, int *index)
 {
-    int ret;
 
-    if ((ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock))))
+    if (pthread_rwlock_wrlock(&(inode_table[inumber].lock)))
     {
-        //error if invalid argument
-        if (ret == EBUSY)
-        {
-            return ret;
-        }
-        else 
-        {
-            fprintf(stderr, "Error of type %d! While write locking thread...\n", ret);
-            exit(1);
-        }
+        fprintf(stderr, "Error! While write locking thread...\n");
+        exit(1);
     }
     num_locked[*index] = inumber;
     (*index)++;
-
-    return SUCCESS;
+    // printf("write locked ->%d\n",inumber);
 }
 
 /* Locks inode to writing */
-int lock_inode_rd(int inumber, int *num_locked, int *index)
+void lock_inode_rd(int inumber,int *num_locked, int *index)
 {
-    int ret;
-
-    if ((ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock))))
+    if (pthread_rwlock_rdlock(&(inode_table[inumber].lock)))
     {
-        //error if invalid argument
-        if (ret == EBUSY)
+        fprintf(stderr, "Error! While read locking thread...\n");
+        exit(1);
+    }
+    num_locked[*index] = inumber;
+    (*index)++;
+    // printf("read locked ->%d\n",inumber);
+}
+
+/* tries to Locks inode */
+int try_lock_inode_wr(int inumber, int *num_locked, int *index)
+{
+    int ret = pthread_rwlock_trywrlock(&(inode_table[inumber].lock));
+
+    if (ret)
+    {
+        if (ret == EBUSY || ret == EDEADLK)
         {
             return ret;
         }
@@ -315,7 +317,32 @@ int lock_inode_rd(int inumber, int *num_locked, int *index)
     }
     num_locked[*index] = inumber;
     (*index)++;
+    // printf("\nWrite lock %d\n",inumber);
+    return SUCCESS;
+}
 
+/* tries to Locks inode to writing */
+int try_lock_inode_rd(int inumber, int *num_locked, int *index)
+{
+    int ret = pthread_rwlock_tryrdlock(&(inode_table[inumber].lock));
+
+    if (ret)
+    {
+        //error if invalid argument
+        if (ret == EDEADLK || ret == EAGAIN)
+        {
+            return ret;
+        }else if(ret == EBUSY);
+            
+        else 
+        {
+            fprintf(stderr, "Error of type %d! While read locking thread...inumber %d\n", ret,inumber);
+            exit(1);
+        }
+    }
+    num_locked[*index] = inumber;
+    (*index)++;
+    // printf("\nRead lock %d\n",inumber);
     return SUCCESS;
 }
 
@@ -327,6 +354,8 @@ void unlock_inode(int inumber)
         fprintf(stderr, "Error! While unlocking thread...\n");
         exit(1);
     }
+    // printf("Unlock %d\n",inumber);
+
 }
 
 /* Unlocks collection of inodes */
