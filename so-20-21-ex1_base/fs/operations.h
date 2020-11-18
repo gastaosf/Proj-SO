@@ -6,6 +6,7 @@
 #define READ 2
 #define WRITE 3
 #define MAX 5
+#define DELAY_SLEEP DELAY*100
 #define INTRALOCK -2
 #define INTERLOCK -3 
 

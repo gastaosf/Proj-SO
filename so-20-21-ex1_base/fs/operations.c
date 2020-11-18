@@ -281,15 +281,8 @@ int delete (char *name)
 
 	return SUCCESS;
 }
-/*
- * Lookup for a given path.
- * Input:
- *  - name: path of node
- * 	- locked_inodes: storage for locked_inodes
- * Returns:
- *  inumber: identifier of the i-node, if found
- *     FAIL: otherwise
- */
+
+/*auxiliary function that returns inumber associated with the given name */
 int lookup_aux(char *name, int *locked_inodes, int parentLock, int *numLocked)
 {
 	char full_path[MAX_FILE_NAME];
@@ -338,6 +331,15 @@ int lookup_aux(char *name, int *locked_inodes, int parentLock, int *numLocked)
 	return current_inumber;
 }
 
+/*
+ * Lookup for a given path.
+ * Input:
+ *  - name: path of node
+ * 	- locked_inodes: storage for locked_inodes
+ * Returns:
+ *  inumber: identifier of the i-node, if found
+ *     FAIL: otherwise
+ */
 int lookup(char *name)
 {
 	int parent_inumber = 0;
@@ -358,6 +360,7 @@ void print_tecnicofs_tree(FILE *fp)
 	inode_print_tree(fp, FS_ROOT, "");
 }
 
+/* Move source to destination */
 int move(char *source, char *destination)
 {
 	int source_parent_inumber = 0;
@@ -381,48 +384,34 @@ int move(char *source, char *destination)
 	strcpy(name_copy2, destination);
 	split_parent_child_from_path(name_copy2, &dest_parent, &dest_child);
 
-	//intralock -> second lookup tried to acquire writelock switch lookup order
-	//interlock -> other already acquired some lock from path go to sleep and try again later
 	do
 	{
-		//printf("hello cunt\n");
 		if (firstLookup)
 		{
 			source_parent_inumber = lookup_aux_move(source_parent, locked_inodes, WRITE, &numLocked);
 			dest_parent_inumber = lookup_aux_move(dest_parent, locked_inodes, WRITE, &numLocked);
-			//continue;
+			firstLookup = 0;
 		}
-		else if (source_parent_inumber == INTERLOCK || dest_parent_inumber == INTERLOCK)
+		else if (source_parent_inumber == INTERLOCK || source_parent_inumber == INTRALOCK)
 		{
 			unlock_inodes(locked_inodes, numLocked);
 			numLocked = 0;
-			sleep((random() % MAX + 1) / 10);
+			insert_delay(DELAY_SLEEP * (random() % MAX + 1));
+
 			source_parent_inumber = lookup_aux_move(source_parent, locked_inodes, WRITE, &numLocked);
 			dest_parent_inumber = lookup_aux_move(dest_parent, locked_inodes, WRITE, &numLocked);
 		}
-		else if (dest_parent_inumber == INTRALOCK)
+		else if (dest_parent_inumber == INTRALOCK || dest_parent_inumber == INTERLOCK)
 		{
 			unlock_inodes(locked_inodes, numLocked);
 			numLocked = 0;
-			sleep((random() % MAX + 1) / 10);
-			dest_parent_inumber = lookup_aux_move(dest_parent, locked_inodes, WRITE, &numLocked);
-			source_parent_inumber = lookup_aux_move(source_parent, locked_inodes, WRITE, &numLocked);
-		}
-		else if (source_parent_inumber == INTRALOCK)
-		{
-			unlock_inodes(locked_inodes, numLocked);
-			numLocked = 0;
-			sleep((random() % MAX + 1) / 10);
+			insert_delay(DELAY_SLEEP * (random() % MAX + 1));
+
 			source_parent_inumber = lookup_aux_move(source_parent, locked_inodes, WRITE, &numLocked);
 			dest_parent_inumber = lookup_aux_move(dest_parent, locked_inodes, WRITE, &numLocked);
 		}
-		firstLookup =0;
 
 	} while (source_parent_inumber == INTERLOCK || source_parent_inumber == INTRALOCK || dest_parent_inumber == INTERLOCK || dest_parent_inumber == INTRALOCK);
-
-	//comment
-	// printf("source parent ->%d\n", source_parent_inumber);
-	// printf("dest parent ->%d\n", dest_parent_inumber);
 
 	if (source_parent_inumber == FAIL)
 	{
@@ -474,15 +463,10 @@ int move(char *source, char *destination)
 		return FAIL;
 	}
 
-	//check if destination parent is already full
-	// if (dest_pdata.dirEntries[MAX_DIR_ENTRIES - 1].inumber != T_NONE)
-	// {
-	// 	printf("failed to move %s, parent %s is full.\n",
-	// 		   source, destination);
-
-	// 	unlock_inodes(locked_inodes, numLocked);
-	// 	return FAIL;
-	// }
+	if (source_child_inumber == dest_parent_inumber)
+	{
+		return FAIL;
+	}
 
 	//both these operations are safe after the previous conditions are met
 	dir_add_entry(dest_parent_inumber, source_child_inumber, dest_child);
@@ -494,6 +478,7 @@ int move(char *source, char *destination)
 	return SUCCESS;
 }
 
+/* Auxiliary lookup that prevents intra & inter thread deadlocks on the move operation */
 int lookup_aux_move(char *name, int *locked_inodes, int parentLock, int *numLocked)
 {
 	char full_path[MAX_FILE_NAME];
@@ -519,34 +504,33 @@ int lookup_aux_move(char *name, int *locked_inodes, int parentLock, int *numLock
 	{
 		int ret = try_lock_inode_wr(current_inumber, locked_inodes, numLocked);
 		if (ret == EBUSY)
-			return INTRALOCK;
-		else if (ret == EDEADLK)
 			return INTERLOCK;
+		else if (ret == EDEADLK)
+			return INTRALOCK;
 	}
 	else
 	{
 		int ret = try_lock_inode_rd(current_inumber, locked_inodes, numLocked);
-		// if (ret == EBUSY)
-		// 	return INTRALOCK;
+		if (ret == EBUSY)
+			return INTRALOCK;
 	}
 
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL)
 	{
 		path = strtok_r(NULL, delim, &saveptr);
-		if (path || parentLock == READ)
-		{
-			int ret = try_lock_inode_rd(current_inumber, locked_inodes, numLocked);
-			// if (ret == EBUSY)
-			// 	return INTRALOCK;
-		}
-		else
+		if (!path && parentLock == WRITE)
 		{
 			int ret = try_lock_inode_wr(current_inumber, locked_inodes, numLocked);
 			if (ret == EBUSY)
-				return INTRALOCK;
-			else if (ret == EDEADLK)
 				return INTERLOCK;
+			else if (ret == EDEADLK)
+				return INTRALOCK;
+		}
+		else
+		{
+			if (try_lock_inode_rd(current_inumber, locked_inodes, numLocked) == EBUSY)
+				return INTRALOCK;
 		}
 
 		inode_get(current_inumber, &nType, &data);

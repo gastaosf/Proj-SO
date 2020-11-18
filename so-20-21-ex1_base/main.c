@@ -17,8 +17,8 @@ int numberThreads;
 
 pthread_t *tid;
 pthread_mutex_t lockQueue = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t canAddCommand;
-pthread_cond_t canRemoveCommand;
+pthread_cond_t canAddCommand = PTHREAD_COND_INITIALIZER;
+pthread_cond_t canRemoveCommand = PTHREAD_COND_INITIALIZER;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -71,8 +71,6 @@ char *removeCommand()
     // lockCommandVector();
     while (numberCommands == 0 && !reachedEOF)
     {
-        // if(!reachedEOF)
-        //     return "";
         pthread_cond_wait(&canRemoveCommand, &lockQueue);
     }
     numberCommands--;
@@ -110,7 +108,10 @@ void joinTasks(int numberThreads)
 {
     for (int i = 0; i < numberThreads; i++)
     {
-        pthread_join(tid[i], NULL);
+        if(pthread_join(tid[i], NULL)){
+            fprintf(stderr, "Error while joining thread.\n");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
@@ -293,9 +294,7 @@ void applyCommands()
             delete (name);
             break;
         case 'm':            
-            while(move(source, destination) == EBUSY){
-
-            }
+            move(source, destination);
             break;
         default:
         { /* error */
