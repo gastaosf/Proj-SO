@@ -2,11 +2,16 @@
 #define FS_H
 
 #include "state.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define READ 2
 #define WRITE 3
 #define MAX 5
-#define DELAY_SLEEP DELAY*100
+#define DELAY_SLEEP DELAY*40
 #define INTRALOCK -2
 #define INTERLOCK -3 
 

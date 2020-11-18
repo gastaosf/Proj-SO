@@ -6,12 +6,12 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <errno.h>
 #include "fs/operations.h"
 
 #define MAX_COMMANDS 10
 #define MAX_INPUT_SIZE 100
 #define TRUE 1
+#define TIME_TO_MICRO 1000000.0
 
 int numberThreads;
 
@@ -126,10 +126,10 @@ void argNumChecker(int argc)
 }
 
 /* Ensures that input file exists and there are no problems. */
-FILE *inputFileHandler(char *file_name)
+FILE *FileHandler(char *file_name,char* type)
 {
     FILE *fp;
-    fp = fopen(file_name, "r");
+    fp = fopen(file_name, type);
 
     if (fp == NULL)
     {
@@ -139,19 +139,6 @@ FILE *inputFileHandler(char *file_name)
     return fp;
 }
 
-/* Ensures that output file has no problems. */
-FILE *outputFileHandler(char *file_name)
-{
-    FILE *fp;
-    fp = fopen(file_name, "w");
-
-    if (fp == NULL)
-    {
-        fprintf(stderr, "Output file was not opened. %s\n", file_name);
-        exit(1);
-    }
-    return fp;
-}
 
 /* Ensures number of threads is possible. */
 int numThreadsHandler(char *num_threads)
@@ -223,10 +210,10 @@ void processInput(FILE *fp)
         }
         }
     }
-    //lockCommandVector();
+    lockCommandVector();
     reachedEOF = TRUE;
     pthread_cond_broadcast(&canRemoveCommand);
-    //unlockCommandVector();
+    unlockCommandVector();
 }
 
 void applyCommands()
@@ -256,6 +243,7 @@ void applyCommands()
         {
             numTokens = sscanf(command, "%c %s %s", &token, source, destination);
         }
+
         unlockCommandVector();
 
         if (numTokens < 2)
@@ -290,7 +278,6 @@ void applyCommands()
                 printf("Search: %s not found\n", name);
             break;
         case 'd':
-            printf("Delete: %s\n", name);
             delete (name);
             break;
         case 'm':            
@@ -313,10 +300,14 @@ int main(int argc, char *argv[])
     pthread_cond_init(&canAddCommand, NULL);
     pthread_cond_init(&canRemoveCommand, NULL);
 
-    argNumChecker(argc);
+    if (argc != 4)
+    {
+        fprintf(stderr, "Wrong number of arguments given.%d given %d required\n", argc, 4);
+        exit(1);
+    }
 
-    FILE *fp = inputFileHandler(argv[1]);
-    FILE *fp2 = outputFileHandler(argv[2]);
+    FILE *fp_input = FileHandler(argv[1],"r");
+    FILE *fp_output = FileHandler(argv[2],"w");
 
     numberThreads = numThreadsHandler(argv[3]);
 
@@ -330,19 +321,19 @@ int main(int argc, char *argv[])
     gettimeofday(&start, NULL);
 
     /* process input */
-    processInput(fp);
+    processInput(fp_input);
 
     joinTasks(numberThreads);
 
     /* final time */
     gettimeofday(&end, NULL);
 
-    time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / 1000000.0;
-    print_tecnicofs_tree(fp2);
+    time = end.tv_sec - start.tv_sec + (end.tv_usec - start.tv_usec) / TIME_TO_MICRO;
+    print_tecnicofs_tree(fp_output);
     printf("TecnicoFS completed in %.4lf seconds.\n", time);
 
-    fclose(fp);
-    fclose(fp2);
+    fclose(fp_input);
+    fclose(fp_output);
 
     /* release allocated memory */
     destroy_fs();

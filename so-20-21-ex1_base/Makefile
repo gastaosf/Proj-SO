@@ -3,8 +3,8 @@
 
 CC   = gcc
 LD   = gcc
-CFLAGS =-Wall -std=gnu99 -I../ -g
-LDFLAGS=-lm -pthread
+CFLAGS =-Wall -std=gnu99 -I../ -g -pthread
+LDFLAGS=-lm 
 
 # A phony target is one that is not really the name of a file
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
@@ -14,9 +14,6 @@ all: tecnicofs
 
 tecnicofs: fs/state.o fs/operations.o main.o
 	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o main.o
-
-synch.o: synch.c synch.h
-	$(CC) $(CFLAGS) -o synch.o -c synch.c
 
 fs/state.o: fs/state.c fs/state.h tecnicofs-api-constants.h 
 	$(CC) $(CFLAGS) -o fs/state.o -c fs/state.c
@@ -30,9 +27,3 @@ main.o: main.c fs/operations.h fs/state.h tecnicofs-api-constants.h
 clean:
 	@echo Cleaning...
 	rm -f fs/*.o *.o tecnicofs
-
-run: tecnicofs
-	./tecnicofs
-
-run1: tecnicofs
-	./tecnicofs < inputs/test4.txt

@@ -1,10 +1,5 @@
 #include "operations.h"
-#include "state.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
+
 
 /* Given a path, fills pointers with strings for the parent path and child
  * file name
@@ -276,6 +271,7 @@ int delete (char *name)
 
 		return FAIL;
 	}
+	printf("Delete: %s\n", name);
 
 	unlock_inodes(locked_inodes, size);
 
