@@ -1,7 +1,15 @@
 #ifndef API_H
 #define API_H
 
-#include "tecnicofs-api-constants.h"
+#include "../tecnicofs-api-constants.h"
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <stdio.h>
+
+int setSockAddrUn(char *path, struct sockaddr_un *addr);
 
 int tfsCreate(char *path, char nodeType);
 int tfsDelete(char *path);
