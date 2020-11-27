@@ -1,5 +1,5 @@
 #include "tecnicofs-client-api.h"
-#define socketName "clientSocket"
+#define socketName "/tmp/clientSocket"
 
 int sockfd;
 socklen_t servlen, clilen;

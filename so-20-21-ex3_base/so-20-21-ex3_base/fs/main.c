@@ -20,6 +20,7 @@ pthread_rwlock_t lockFS = PTHREAD_RWLOCK_INITIALIZER;
 
 int sockfd;
 struct sockaddr_un server_addr;
+
 socklen_t addrlen;
 char *socket_path = "";
 
@@ -108,7 +109,7 @@ void initServer(char *path)
     }
 }
 
-char *receiveCommand(struct sockaddr *client_addr)
+char *receiveCommand(struct sockaddr_un *client_addr)
 {
     while (1)
     {
@@ -122,7 +123,6 @@ char *receiveCommand(struct sockaddr *client_addr)
 
         if (c <= 0)
             continue;
-        printf("%s\n", client_addr->sa_data);
 
         buffer[c] = '\0';
         strncpy(command, buffer, sizeof(buffer) - 1);
@@ -130,10 +130,9 @@ char *receiveCommand(struct sockaddr *client_addr)
     }
 }
 
-void sendResponse(int response, struct sockaddr *client_addr)
+void sendResponse(int response, struct sockaddr_un *client_addr)
 {
-    printf("%s\n", client_addr->sa_data);
-    sendto(sockfd, &response, sizeof(response) + 1, 0, (struct sockaddr *)&client_addr, addrlen);
+    sendto(sockfd, &response, sizeof(response) + 1, 0, (struct sockaddr *)client_addr, addrlen);
 }
 
 void applyCommands()
@@ -143,8 +142,10 @@ void applyCommands()
     {
         char token, type;
         char name[MAX_INPUT_SIZE];
-        struct sockaddr client_addr ;
+        //writelockFS();
+        struct sockaddr_un client_addr;
         char *command = receiveCommand(&client_addr);
+
         int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
         if (numTokens < 2)
         {
