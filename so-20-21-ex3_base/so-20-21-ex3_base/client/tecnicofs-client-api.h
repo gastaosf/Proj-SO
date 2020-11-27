@@ -9,8 +9,6 @@
 #include <sys/un.h>
 #include <stdio.h>
 
-int setSockAddrUn(char *path, struct sockaddr_un *addr);
-
 int tfsCreate(char *path, char nodeType);
 int tfsDelete(char *path);
 int tfsLookup(char *path);
