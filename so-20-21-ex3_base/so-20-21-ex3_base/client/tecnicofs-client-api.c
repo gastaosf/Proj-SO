@@ -1,9 +1,11 @@
 #include "tecnicofs-client-api.h"
+#define socketName "clientSocket"
 
 int sockfd;
 socklen_t servlen, clilen;
 struct sockaddr_un serv_addr, client_addr;
-char* clientSockPath;
+char *clientSockPath = socketName;
+char *serverSockPath = "";
 char buffer[MAX_INPUT_SIZE];
 
 int setSockAddrUn(char *path, struct sockaddr_un *addr)
@@ -20,21 +22,30 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr)
 
 int tfsCreate(char *filename, char nodeType)
 {
-  sprintf(buffer, "c %s %c\n", filename, nodeType);
-  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) > 0)
+  int in_buffer;
+  char out_buffer[MAX_INPUT_SIZE];
+  sprintf(out_buffer, "c %s %c\n", filename, nodeType);
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
   {
-    perror("client: sendto error");
+    perror("client: sendto error\n");
     return EXIT_FAILURE;
   }
-  return EXIT_SUCCESS;
+
+  if (recvfrom(sockfd, &in_buffer, sizeof(buffer), 0, 0, 0) <= 0)
+  {
+    perror("client: recvfrom error\n");
+    return EXIT_FAILURE;
+  }
+
+  return in_buffer;
 }
 
 int tfsDelete(char *path)
 {
   sprintf(buffer, "d %s\n", path);
-  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) > 0)
+  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
   {
-    perror("client: sendto error");
+    perror("client: sendto error\n");
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
@@ -43,9 +54,9 @@ int tfsDelete(char *path)
 int tfsMove(char *from, char *to)
 {
   sprintf(buffer, "m %s %s\n", from, to);
-  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) > 0)
+  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
   {
-    perror("client: sendto error");
+    perror("client: sendto error\n");
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
@@ -54,9 +65,9 @@ int tfsMove(char *from, char *to)
 int tfsLookup(char *path)
 {
   sprintf(buffer, "l %s\n", path);
-  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) > 0)
+  if (sendto(sockfd, buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
   {
-    perror("client: sendto error");
+    perror("client: sendto error\n");
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
@@ -67,19 +78,20 @@ int tfsMount(char *sockPath)
 
   if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
   {
-    perror("client: can't open socket");
+    perror("client: can't open socket\n");
     exit(EXIT_FAILURE);
   }
 
-  unlink(sockPath);
-  clilen = setSockAddrUn(sockPath, &client_addr);
+  unlink(socketName);
+  clilen = setSockAddrUn(socketName, &client_addr);
   if (bind(sockfd, (struct sockaddr *)&client_addr, clilen) < 0)
   {
-    perror("client: bind error");
+    perror("client: bind error\n");
     exit(EXIT_FAILURE);
   }
+  servlen = setSockAddrUn(sockPath, &serv_addr);
 
-  strcpy(clientSockPath, sockPath);
+  serverSockPath = sockPath;
 
   return EXIT_SUCCESS;
 }
