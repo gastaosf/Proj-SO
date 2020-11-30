@@ -3,7 +3,7 @@
 
 int sockfd;
 socklen_t servlen, clilen;
-struct sockaddr_un serv_addr, client_addr;
+struct sockaddr_un servAddr, clientAddr;
 char *clientSockPath = socketName;
 char *serverSockPath = "";
 char buffer[MAX_INPUT_SIZE];
@@ -13,16 +13,16 @@ int tfsCreate(char *filename, char nodeType)
   int in_buffer;
   char out_buffer[MAX_INPUT_SIZE];
   sprintf(out_buffer, "c %s %c\n", filename, nodeType);
-  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
     perror("client: sendto error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   if (recvfrom(sockfd, &in_buffer, sizeof(buffer), 0, 0, 0) <= 0)
   {
     perror("client: recvfrom error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   return in_buffer;
@@ -33,16 +33,16 @@ int tfsDelete(char *path)
   int in_buffer;
   char out_buffer[MAX_INPUT_SIZE];
   sprintf(out_buffer, "d %s\n", path);
-  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
     perror("client: sendto error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   if (recvfrom(sockfd, &in_buffer, sizeof(buffer), 0, 0, 0) <= 0)
   {
     perror("client: recvfrom error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   return in_buffer;
@@ -53,16 +53,16 @@ int tfsMove(char *from, char *to)
   int in_buffer;
   char out_buffer[MAX_INPUT_SIZE];
   sprintf(out_buffer, "m %s %s\n", from, to);
-  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
     perror("client: sendto error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   if (recvfrom(sockfd, &in_buffer, sizeof(buffer), 0, 0, 0) <= 0)
   {
     perror("client: recvfrom error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   return in_buffer;
@@ -73,16 +73,16 @@ int tfsLookup(char *path)
   int in_buffer;
   char out_buffer[MAX_INPUT_SIZE];
   sprintf(out_buffer, "l %s\n", path);
-  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&serv_addr, servlen) < 0)
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
     perror("client: sendto error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   if (recvfrom(sockfd, &in_buffer, sizeof(buffer), 0, 0, 0) <= 0)
   {
     perror("client: recvfrom error\n");
-    return EXIT_FAILURE;
+    exit(EXIT_FAILURE);
   }
 
   return in_buffer;
@@ -90,9 +90,9 @@ int tfsLookup(char *path)
 
 int tfsMount(char *sockPath)
 {
-  bzero((char *)(&serv_addr), sizeof(struct sockaddr_un));
-  (&serv_addr)->sun_family = AF_UNIX;
-  strcpy((&serv_addr)->sun_path, sockPath);
+  bzero((char *)(&servAddr), sizeof(struct sockaddr_un));
+  (&servAddr)->sun_family = AF_UNIX;
+  strcpy((&servAddr)->sun_path, sockPath);
 
   if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
   {
@@ -102,18 +102,18 @@ int tfsMount(char *sockPath)
 
   unlink(socketName);
 
-  clilen = SUN_LEN(&serv_addr);
+  clilen = SUN_LEN(&servAddr);
 
-  bzero((char *)(&client_addr), sizeof(struct sockaddr_un));
-  (&client_addr)->sun_family = AF_UNIX;
-  strcpy((&client_addr)->sun_path, clientSockPath);
+  bzero((char *)(&clientAddr), sizeof(struct sockaddr_un));
+  (&clientAddr)->sun_family = AF_UNIX;
+  strcpy((&clientAddr)->sun_path, clientSockPath);
 
-  if (bind(sockfd, (struct sockaddr *)&client_addr, clilen) < 0)
+  if (bind(sockfd, (struct sockaddr *)&clientAddr, clilen) < 0)
   {
     perror("client: bind error\n");
     exit(EXIT_FAILURE);
   }
-  servlen = SUN_LEN(&serv_addr);
+  servlen = SUN_LEN(&servAddr);
 
   serverSockPath = sockPath;
 
@@ -122,16 +122,16 @@ int tfsMount(char *sockPath)
 
 int tfsUnmount()
 {
-  if (close(sockfd) != 0)
+  if (close(sockfd))
   {
     perror("client: can't close socket\n");
     exit(EXIT_FAILURE);
   }
-  if (unlink(clientSockPath) != 0)
+  if (unlink(clientSockPath))
   {
-    perror("client: can't close socket\n");
+    perror("client: can't unlink socket path\n");
     exit(EXIT_FAILURE);
-  };
+  }
 
   return EXIT_SUCCESS;
 }

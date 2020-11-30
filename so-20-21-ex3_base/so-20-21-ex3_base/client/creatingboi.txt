@@ -2,4 +2,5 @@ c a f
 c b d
 c b/c f
 d a
-l c
+m /b/c /e
+l e

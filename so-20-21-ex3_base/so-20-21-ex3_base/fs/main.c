@@ -19,18 +19,13 @@ pthread_t *tid;
 pthread_rwlock_t lockFS = PTHREAD_RWLOCK_INITIALIZER;
 
 int sockfd;
-struct sockaddr_un server_addr;
-
+struct sockaddr_un serverAddr;
 socklen_t addrlen;
-char *socket_path = "";
+char *serverName = "";
 
 int setSockAddrUn(char *path, struct sockaddr_un *addr)
 {
-
-    if (addr == NULL)
-        return 0;
-
-    bzero((char *)addr, sizeof(struct sockaddr_un)); // why set to zero ??
+    bzero((char *)addr, sizeof(struct sockaddr_un));
     addr->sun_family = AF_UNIX;
     strcpy(addr->sun_path, path);
 
@@ -41,7 +36,7 @@ void readlockFS()
 {
     if (pthread_rwlock_rdlock(&lockFS))
     {
-        fprintf(stderr, "Error: while acquiring read lock for FS\n");
+        perror("Error: while acquiring read lock for FS\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -50,7 +45,7 @@ void writelockFS()
 {
     if (pthread_rwlock_wrlock(&lockFS))
     {
-        fprintf(stderr, "Error: while acquiring write lock for FS\n");
+        perror("Error: while acquiring write lock for FS\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -59,14 +54,14 @@ void unlockFS()
 {
     if (pthread_rwlock_unlock(&lockFS))
     {
-        fprintf(stderr, "Error: while releasing lock for FS\n");
+        perror("Error: while releasing lock for FS\n");
         exit(EXIT_FAILURE);
     }
 }
 
 void errorParse()
 {
-    fprintf(stderr, "Error: command invalid\n");
+    perror("Error: command invalid\n");
     exit(EXIT_FAILURE);
 }
 
@@ -77,7 +72,7 @@ void createTaskPool(int numThreads, void *apply)
     {
         if (pthread_create(&tid[i], NULL, apply, NULL) != 0)
         {
-            fprintf(stderr, "Error creating thread.\n");
+            perror("Error creating thread.\n");
             exit(EXIT_FAILURE);
         }
     }
@@ -87,52 +82,64 @@ void joinTasks(int numberThreads)
 {
     for (int i = 0; i < numberThreads; i++)
     {
-        pthread_join(tid[i], NULL);
+        if (pthread_join(tid[i], NULL))
+        {
+            perror("joinTasks: pthread_join error\n");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
-void initServer(char *path)
+void initServer()
 {
     if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
     {
-        perror("server: can't open socket");
+        perror("initServer: can't open socket\n");
         exit(EXIT_FAILURE);
     }
-    unlink(path);
-    socket_path = path;
-    addrlen = setSockAddrUn(path, &server_addr);
-
-    if (bind(sockfd, (struct sockaddr *)&server_addr, addrlen) < 0)
+    if (unlink(serverName))
     {
-        perror("server: bind error");
+        perror("initServer: can't unlink given path\n");
+        exit(EXIT_FAILURE);
+    }
+    addrlen = setSockAddrUn(serverName, &serverAddr);
+
+    if (bind(sockfd, (struct sockaddr *)&serverAddr, addrlen) < 0)
+    {
+        perror("initServer: bind error");
         exit(EXIT_FAILURE);
     }
 }
 
 char *receiveCommand(struct sockaddr_un *client_addr)
 {
-    while (1)
+
+    char buffer[MAX_INPUT_SIZE];
+    char *command = malloc(MAX_INPUT_SIZE * sizeof(char));
+    int c;
+
+    addrlen = sizeof(struct sockaddr_un);
+    c = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0,
+                 (struct sockaddr *)client_addr, &addrlen);
+
+    if (c <= 0)
     {
-        char buffer[MAX_INPUT_SIZE];
-        char *command = malloc(MAX_INPUT_SIZE * sizeof(char));
-        int c;
-
-        addrlen = sizeof(struct sockaddr_un);
-        c = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0,
-                     (struct sockaddr *)client_addr, &addrlen);
-
-        if (c <= 0)
-            continue;
-
-        buffer[c] = '\0';
-        strncpy(command, buffer, sizeof(buffer) - 1);
-        return command;
+        perror("receiveCommand : recvfrom error");
+        exit(EXIT_FAILURE);
     }
+
+    buffer[c] = '\0';
+    strncpy(command, buffer, sizeof(buffer) - 1);
+    return command;
 }
 
 void sendResponse(int response, struct sockaddr_un *client_addr)
 {
-    sendto(sockfd, &response, sizeof(response) + 1, 0, (struct sockaddr *)client_addr, addrlen);
+    if (sendto(sockfd, &response, sizeof(response) + 1, 0, (struct sockaddr *)client_addr, addrlen) < 0)
+    {
+        perror("sendResponse: sendto error\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void applyCommands()
@@ -140,38 +147,39 @@ void applyCommands()
 
     while (1)
     {
-        char token, type;
-        char name[MAX_INPUT_SIZE];
-        //writelockFS();
+        char op;
+        char arg1[MAX_INPUT_SIZE], arg2[MAX_INPUT_SIZE];
+        int searchResult;
+
         struct sockaddr_un client_addr;
         char *command = receiveCommand(&client_addr);
 
-        int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        int numTokens = sscanf(command, "%c %s %s", &op, arg1, arg2);
         if (numTokens < 2)
         {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
         }
 
-        int searchResult;
-        switch (token)
+        switch (op)
         {
         case 'c':
-            switch (type)
+            switch (arg2[0])
             {
             case 'f':
                 writelockFS();
-                printf("Create file: %s\n", name);
 
-                searchResult = create(name, T_FILE);
-                sendResponse(searchResult, &client_addr);
+                printf("Create file: %s\n", arg1);
+                searchResult = create(arg1, T_FILE);
 
                 unlockFS();
                 break;
             case 'd':
                 writelockFS();
-                printf("Create directory: %s\n", name);
-                searchResult = create(name, T_DIRECTORY);
+
+                printf("Create directory: %s\n", arg1);
+                searchResult = create(arg1, T_DIRECTORY);
+
                 unlockFS();
                 break;
             default:
@@ -181,43 +189,68 @@ void applyCommands()
             break;
         case 'l':
             readlockFS();
-            searchResult = lookup(name);
+
+            searchResult = lookup(arg1);
             if (searchResult >= 0)
-                printf("Search: %s found\n", name);
+                printf("Search: %s found\n", arg1);
             else
-                printf("Search: %s not found\n", name);
+                printf("Search: %s not found\n", arg1);
+
             unlockFS();
             break;
         case 'd':
             writelockFS();
-            printf("Delete: %s\n", name);
-            searchResult = delete (name);
+
+            printf("Delete: %s\n", arg1);
+            searchResult = delete (arg1);
+
             unlockFS();
             break;
-        // case 'm':
-        //     writelockFS();
-        //     printf("Move: %s to %s\n",source,destination);
-        //     searchResult = move(source,destination);
-        //     unlockFS();
-        //     break;
+        case 'm':
+            writelockFS();
+
+            printf("Move: %s to %s\n", arg1, arg2);
+            searchResult = move(arg1, arg2);
+
+            unlockFS();
+            break;
         default:
         { /* error */
             fprintf(stderr, "Error: command to apply\n");
             exit(EXIT_FAILURE);
         }
         }
-        // writelockFS();
-        // unlockFS();
+
+        sendResponse(searchResult, &client_addr);
+        free(command);
+    }
+}
+
+static void parseArgs(long argc, char *const argv[])
+{
+    if (argc != 3)
+    {
+        fprintf(stderr, "Invalid format:\n");
+        printf("Usage: %s numberThreads serverName\n", argv[0]);
+    }
+
+    numberThreads = atoi(argv[1]);
+    serverName = argv[2];
+
+    if (numberThreads <= 0)
+    {
+        fprintf(stderr, "Error: numberThreads must be a positive number\n");
+        exit(EXIT_FAILURE);
     }
 }
 
 int main(int argc, char *argv[])
 {
 
-    numberThreads = atoi(argv[1]);
+    parseArgs(argc, argv);
 
     init_fs();
-    initServer(argv[2]);
+    initServer();
     createTaskPool(numberThreads, &applyCommands);
     joinTasks(numberThreads);
     destroy_fs();

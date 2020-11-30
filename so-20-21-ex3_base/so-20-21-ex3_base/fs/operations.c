@@ -321,6 +321,12 @@ int move(char *source, char *destination)
 		return FAIL;
 	}
 
+	if(dest_parent_inumber == source_child_inumber){
+		printf("failed to move %s, can't be moved into himself.\n",
+			   source);
+		return FAIL;
+	}
+
 	//both these operations are safe after the previous conditions are met
 	dir_add_entry(dest_parent_inumber, source_child_inumber, dest_child);
 	dir_reset_entry(source_parent_inumber, source_child_inumber);
@@ -358,7 +364,6 @@ int lookup(char *name)
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL)
 	{
-		printf("%s\n", path);
 		inode_get(current_inumber, &nType, &data);
 		path = strtok(NULL, delim);
 	}
