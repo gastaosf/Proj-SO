@@ -101,6 +101,10 @@ int tfsMount(char *sockPath)
   }
 
   unlink(socketName);
+  // {
+  //   perror("client: can't unlink socket path on mount\n");
+  //   exit(EXIT_FAILURE);
+  // }
 
   clilen = SUN_LEN(&servAddr);
 
@@ -129,7 +133,7 @@ int tfsUnmount()
   }
   if (unlink(clientSockPath))
   {
-    perror("client: can't unlink socket path\n");
+    perror("client: can't unlink socket path on unmount\n");
     exit(EXIT_FAILURE);
   }
 
