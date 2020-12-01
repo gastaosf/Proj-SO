@@ -2,6 +2,7 @@
 c a f
 c b f
 c c f
+p test1a.out
 c d f
 c e f
 c f f
@@ -10,3 +11,4 @@ c h f
 l c
 d c
 l c
+p test1b.out

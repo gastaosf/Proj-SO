@@ -26,3 +26,4 @@ c /e/f d
 c /e/f2 d
 c /e/f3 d
 m /a/b /c/b
+p test7.out
