@@ -153,7 +153,7 @@ void applyCommands()
     {
         char op;
         char arg1[MAX_INPUT_SIZE], arg2[MAX_INPUT_SIZE];
-        int searchResult;
+        int result;
 
         struct sockaddr_un client_addr;
         char *command = receiveCommand(&client_addr);
@@ -174,7 +174,7 @@ void applyCommands()
                 writelockFS();
 
                 printf("Create file: %s\n", arg1);
-                searchResult = create(arg1, T_FILE);
+                result = create(arg1, T_FILE);
 
                 unlockFS();
                 break;
@@ -182,7 +182,7 @@ void applyCommands()
                 writelockFS();
 
                 printf("Create directory: %s\n", arg1);
-                searchResult = create(arg1, T_DIRECTORY);
+                result = create(arg1, T_DIRECTORY);
 
                 unlockFS();
                 break;
@@ -194,8 +194,8 @@ void applyCommands()
         case 'l':
             readlockFS();
 
-            searchResult = lookup(arg1);
-            if (searchResult >= 0)
+            result = lookup(arg1);
+            if (result >= 0)
                 printf("Search: %s found\n", arg1);
             else
                 printf("Search: %s not found\n", arg1);
@@ -206,7 +206,7 @@ void applyCommands()
             writelockFS();
 
             printf("Delete: %s\n", arg1);
-            searchResult = delete (arg1);
+            result = delete (arg1);
 
             unlockFS();
             break;
@@ -214,7 +214,15 @@ void applyCommands()
             writelockFS();
 
             printf("Move: %s to %s\n", arg1, arg2);
-            searchResult = move(arg1, arg2);
+            result = move(arg1, arg2);
+
+            unlockFS();
+            break;
+        case 'p':
+            writelockFS();
+
+            printf("Print tree to: %s\n", arg1);
+            result = print_tecnicofs_tree(arg1);
 
             unlockFS();
             break;
@@ -225,7 +233,7 @@ void applyCommands()
         }
         }
 
-        sendResponse(searchResult, &client_addr);
+        sendResponse(result, &client_addr);
         free(command);
     }
 }

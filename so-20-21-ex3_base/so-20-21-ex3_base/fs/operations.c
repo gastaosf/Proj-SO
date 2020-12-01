@@ -376,7 +376,14 @@ int lookup(char *name)
  * Input:
  *  - fp: pointer to output file
  */
-void print_tecnicofs_tree(FILE *fp)
+int print_tecnicofs_tree(char *filePath)
 {
+	FILE *fp = fopen(filePath, "w");
+
+	if(fp == NULL)
+		return FAIL;
+
 	inode_print_tree(fp, FS_ROOT, "");
+
+	return SUCCESS;
 }
