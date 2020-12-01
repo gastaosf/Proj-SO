@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <errno.h>
 
 #include "operations.h"
 
@@ -99,8 +100,11 @@ void initServer()
     }
     if (unlink(serverName))
     {
-        perror("initServer: can't unlink given path");
-        exit(EXIT_FAILURE);
+        if(errno != ENOENT){
+            perror("initServer: can't unlink given path");
+            exit(EXIT_FAILURE);
+        }
+        
     }
     addrlen = setSockAddrUn(serverName, &serverAddr);
 
