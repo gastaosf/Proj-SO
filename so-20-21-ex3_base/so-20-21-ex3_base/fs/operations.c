@@ -322,7 +322,7 @@ int move(char *source, char *destination)
 	}
 
 	if(dest_parent_inumber == source_child_inumber){
-		printf("failed to move %s, can't be moved into himself.\n",
+		printf("failed to move %s, can't be moved into itself.\n",
 			   source);
 		return FAIL;
 	}

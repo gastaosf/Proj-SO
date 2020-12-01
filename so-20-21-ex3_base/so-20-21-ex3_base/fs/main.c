@@ -36,7 +36,7 @@ void readlockFS()
 {
     if (pthread_rwlock_rdlock(&lockFS))
     {
-        perror("Error: while acquiring read lock for FS\n");
+        perror("Error: while acquiring read lock for FS");
         exit(EXIT_FAILURE);
     }
 }
@@ -45,7 +45,7 @@ void writelockFS()
 {
     if (pthread_rwlock_wrlock(&lockFS))
     {
-        perror("Error: while acquiring write lock for FS\n");
+        perror("Error: while acquiring write lock for FS");
         exit(EXIT_FAILURE);
     }
 }
@@ -54,7 +54,7 @@ void unlockFS()
 {
     if (pthread_rwlock_unlock(&lockFS))
     {
-        perror("Error: while releasing lock for FS\n");
+        perror("Error: while releasing lock for FS");
         exit(EXIT_FAILURE);
     }
 }
@@ -72,7 +72,7 @@ void createTaskPool(int numThreads, void *apply)
     {
         if (pthread_create(&tid[i], NULL, apply, NULL) != 0)
         {
-            perror("Error creating thread.\n");
+            perror("Error creating thread");
             exit(EXIT_FAILURE);
         }
     }
@@ -84,7 +84,7 @@ void joinTasks(int numberThreads)
     {
         if (pthread_join(tid[i], NULL))
         {
-            perror("joinTasks: pthread_join error\n");
+            perror("joinTasks: pthread_join error");
             exit(EXIT_FAILURE);
         }
     }
@@ -94,12 +94,12 @@ void initServer()
 {
     if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
     {
-        perror("initServer: can't open socket\n");
+        perror("initServer: can't open socket");
         exit(EXIT_FAILURE);
     }
     if (unlink(serverName))
     {
-        perror("initServer: can't unlink given path\n");
+        perror("initServer: can't unlink given path");
         exit(EXIT_FAILURE);
     }
     addrlen = setSockAddrUn(serverName, &serverAddr);
@@ -137,7 +137,7 @@ void sendResponse(int response, struct sockaddr_un *client_addr)
 {
     if (sendto(sockfd, &response, sizeof(response) + 1, 0, (struct sockaddr *)client_addr, addrlen) < 0)
     {
-        perror("sendResponse: sendto error\n");
+        perror("sendResponse: sendto error");
         exit(EXIT_FAILURE);
     }
 }
@@ -232,6 +232,7 @@ static void parseArgs(long argc, char *const argv[])
     {
         fprintf(stderr, "Invalid format:\n");
         printf("Usage: %s numberThreads serverName\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     numberThreads = atoi(argv[1]);
