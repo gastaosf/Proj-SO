@@ -86,6 +86,26 @@ int tfsLookup(char *path)
   return in_buffer;
 }
 
+int tfsPrint(char *path)
+{
+  int in_buffer;
+  char out_buffer[MAX_INPUT_SIZE];
+  sprintf(out_buffer, "p %s\n", path);
+  if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
+  {
+    perror("client: sendto error");
+    exit(EXIT_FAILURE);
+  }
+
+  if (recvfrom(sockfd, &in_buffer, sizeof(in_buffer), 0, 0, 0) <= 0)
+  {
+    perror("client: recvfrom error");
+    exit(EXIT_FAILURE);
+  }
+
+  return in_buffer;
+}
+
 int tfsMount(char *sockPath)
 {
 
