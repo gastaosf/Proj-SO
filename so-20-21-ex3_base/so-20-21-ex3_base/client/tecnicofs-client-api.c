@@ -1,15 +1,14 @@
 #include "tecnicofs-client-api.h"
-#include "errno.h"
-#define socketName "/tmp/clientSocket"
 
 int sockfd;
 socklen_t servlen, clilen;
 struct sockaddr_un servAddr, clientAddr;
+char socketName[MAX_FILE_NAME] = "";
 
 int tfsCreate(char *filename, char nodeType)
 {
   int in_buffer;
-  char out_buffer[MAX_INPUT_SIZE];
+  char out_buffer[MAX_INPUT_SIZE] = "";
   sprintf(out_buffer, "c %s %c\n", filename, nodeType);
   if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
@@ -28,8 +27,8 @@ int tfsCreate(char *filename, char nodeType)
 
 int tfsDelete(char *path)
 {
-  int in_buffer;
-  char out_buffer[MAX_INPUT_SIZE];
+  int in_buffer = -1;
+  char out_buffer[MAX_INPUT_SIZE] = "";
   sprintf(out_buffer, "d %s\n", path);
   if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
@@ -48,8 +47,8 @@ int tfsDelete(char *path)
 
 int tfsMove(char *from, char *to)
 {
-  int in_buffer;
-  char out_buffer[MAX_INPUT_SIZE];
+  int in_buffer = -1;
+  char out_buffer[MAX_INPUT_SIZE] = "";
   sprintf(out_buffer, "m %s %s\n", from, to);
   if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
@@ -68,8 +67,8 @@ int tfsMove(char *from, char *to)
 
 int tfsLookup(char *path)
 {
-  int in_buffer;
-  char out_buffer[MAX_INPUT_SIZE];
+  int in_buffer = -1;
+  char out_buffer[MAX_INPUT_SIZE] = "";
   sprintf(out_buffer, "l %s\n", path);
   if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
@@ -88,8 +87,8 @@ int tfsLookup(char *path)
 
 int tfsPrint(char *path)
 {
-  int in_buffer;
-  char out_buffer[MAX_INPUT_SIZE];
+  int in_buffer = -1;
+  char out_buffer[MAX_INPUT_SIZE] = "";
   sprintf(out_buffer, "p %s\n", path);
   if (sendto(sockfd, out_buffer, MAX_INPUT_SIZE, 0, (struct sockaddr *)&servAddr, servlen) < 0)
   {
@@ -120,6 +119,8 @@ int tfsMount(char *sockPath)
     perror("client: can't open socket");
     exit(EXIT_FAILURE);
   }
+
+  sprintf(socketName,"/tmp/clientSocket%d",getpid());
   unlink(socketName);
 
   bzero((char *)(&clientAddr), sizeof(struct sockaddr_un));

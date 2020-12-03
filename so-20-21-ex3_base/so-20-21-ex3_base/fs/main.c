@@ -93,11 +93,6 @@ void joinTasks(int numberThreads)
 
 void initServer()
 {
-    if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
-    {
-        perror("initServer: can't open socket");
-        exit(EXIT_FAILURE);
-    }
     if (unlink(serverName))
     {
         if(errno != ENOENT){
@@ -106,6 +101,13 @@ void initServer()
         }
         
     }
+
+    if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0)
+    {
+        perror("initServer: can't open socket");
+        exit(EXIT_FAILURE);
+    }
+    
     addrlen = setSockAddrUn(serverName, &serverAddr);
 
     if (bind(sockfd, (struct sockaddr *)&serverAddr, addrlen) < 0)

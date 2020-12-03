@@ -374,7 +374,7 @@ int lookup(char *name)
 /*
  * Prints tecnicofs tree.
  * Input:
- *  - fp: pointer to output file
+ *  - filePath: name of output file
  */
 int print_tecnicofs_tree(char *filePath)
 {
@@ -387,4 +387,3 @@ int print_tecnicofs_tree(char *filePath)
 	fclose(fp);
 	return SUCCESS;
 }
-/* git coiso */
